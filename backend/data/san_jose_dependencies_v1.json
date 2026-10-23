@@ -1,0 +1,447 @@
+{
+  "schema_version": 1,
+  "city_schema_version": 1,
+  "edges": [
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "intersection-north-first-tasman",
+      "dependency_type": "POWER",
+      "weight": 0.92,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "intersection-alum-rock-capitol",
+      "dependency_type": "POWER",
+      "weight": 0.94,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "intersection-story-king",
+      "dependency_type": "POWER",
+      "weight": 0.94,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "pharmacy-east",
+      "dependency_type": "POWER",
+      "weight": 0.88,
+      "failure_delay_minutes": 10,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "cooling-center-east",
+      "dependency_type": "POWER",
+      "weight": 0.97,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "shelter-east",
+      "dependency_type": "POWER",
+      "weight": 0.72,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "warehouse-north",
+      "dependency_type": "POWER",
+      "weight": 0.75,
+      "failure_delay_minutes": 20,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "neighborhood-berryessa",
+      "dependency_type": "POWER",
+      "weight": 0.9,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-01",
+      "dependent_id": "neighborhood-east",
+      "dependency_type": "POWER",
+      "weight": 0.87,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-03",
+      "dependent_id": "hospital-downtown",
+      "dependency_type": "POWER",
+      "weight": 0.98,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-03",
+      "dependent_id": "intersection-santa-clara-market",
+      "dependency_type": "POWER",
+      "weight": 0.95,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-03",
+      "dependent_id": "pharmacy-downtown",
+      "dependency_type": "POWER",
+      "weight": 0.9,
+      "failure_delay_minutes": 10,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-03",
+      "dependent_id": "cooling-center-downtown",
+      "dependency_type": "POWER",
+      "weight": 0.96,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-03",
+      "dependent_id": "shelter-downtown",
+      "dependency_type": "POWER",
+      "weight": 0.75,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "substation-03",
+      "dependent_id": "neighborhood-downtown",
+      "dependency_type": "POWER",
+      "weight": 0.94,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-05",
+      "dependent_id": "hospital-west",
+      "dependency_type": "POWER",
+      "weight": 0.98,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-05",
+      "dependent_id": "intersection-stevens-creek-bascom",
+      "dependency_type": "POWER",
+      "weight": 0.94,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-05",
+      "dependent_id": "pharmacy-west",
+      "dependency_type": "POWER",
+      "weight": 0.89,
+      "failure_delay_minutes": 10,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-05",
+      "dependent_id": "neighborhood-west",
+      "dependency_type": "POWER",
+      "weight": 0.9,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-05",
+      "dependent_id": "neighborhood-willow-glen",
+      "dependency_type": "POWER",
+      "weight": 0.85,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "hospital-south",
+      "dependency_type": "POWER",
+      "weight": 0.98,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "intersection-monterey-curtner",
+      "dependency_type": "POWER",
+      "weight": 0.95,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "intersection-blossom-hill-snell",
+      "dependency_type": "POWER",
+      "weight": 0.95,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "pharmacy-south",
+      "dependency_type": "POWER",
+      "weight": 0.9,
+      "failure_delay_minutes": 10,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "cooling-center-south",
+      "dependency_type": "POWER",
+      "weight": 0.97,
+      "failure_delay_minutes": 0,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "shelter-south",
+      "dependency_type": "POWER",
+      "weight": 0.76,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "warehouse-south",
+      "dependency_type": "POWER",
+      "weight": 0.76,
+      "failure_delay_minutes": 20,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "neighborhood-south",
+      "dependency_type": "POWER",
+      "weight": 0.92,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "substation-07",
+      "dependent_id": "neighborhood-almaden",
+      "dependency_type": "POWER",
+      "weight": 0.86,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "SOURCE_RESTORED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "intersection-north-first-tasman",
+      "dependent_id": "emergency-route-north",
+      "dependency_type": "ACCESS",
+      "weight": 0.78,
+      "failure_delay_minutes": 5,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "intersection-alum-rock-capitol",
+      "dependent_id": "emergency-route-east",
+      "dependency_type": "ACCESS",
+      "weight": 0.84,
+      "failure_delay_minutes": 5,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "intersection-story-king",
+      "dependent_id": "emergency-route-east",
+      "dependency_type": "ACCESS",
+      "weight": 0.82,
+      "failure_delay_minutes": 5,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "intersection-santa-clara-market",
+      "dependent_id": "hospital-downtown",
+      "dependency_type": "ACCESS",
+      "weight": 0.75,
+      "failure_delay_minutes": 10,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "intersection-stevens-creek-bascom",
+      "dependent_id": "hospital-west",
+      "dependency_type": "ACCESS",
+      "weight": 0.82,
+      "failure_delay_minutes": 10,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "intersection-monterey-curtner",
+      "dependent_id": "emergency-route-south",
+      "dependency_type": "ACCESS",
+      "weight": 0.85,
+      "failure_delay_minutes": 5,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "intersection-blossom-hill-snell",
+      "dependent_id": "emergency-route-south",
+      "dependency_type": "ACCESS",
+      "weight": 0.8,
+      "failure_delay_minutes": 5,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "emergency-route-north",
+      "dependent_id": "hospital-downtown",
+      "dependency_type": "ACCESS",
+      "weight": 0.7,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "emergency-route-east",
+      "dependent_id": "hospital-downtown",
+      "dependency_type": "ACCESS",
+      "weight": 0.8,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "emergency-route-south",
+      "dependent_id": "hospital-south",
+      "dependency_type": "ACCESS",
+      "weight": 0.86,
+      "failure_delay_minutes": 15,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "emergency-route-south",
+      "dependent_id": "shelter-south",
+      "dependency_type": "ACCESS",
+      "weight": 0.62,
+      "failure_delay_minutes": 20,
+      "restoration_requirement": "ROUTE_REOPENED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "warehouse-north",
+      "dependent_id": "pharmacy-east",
+      "dependency_type": "SUPPLY",
+      "weight": 0.78,
+      "failure_delay_minutes": 40,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "warehouse-north",
+      "dependent_id": "pharmacy-downtown",
+      "dependency_type": "SUPPLY",
+      "weight": 0.75,
+      "failure_delay_minutes": 40,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "warehouse-north",
+      "dependent_id": "hospital-downtown",
+      "dependency_type": "SUPPLY",
+      "weight": 0.82,
+      "failure_delay_minutes": 45,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "warehouse-north",
+      "dependent_id": "hospital-west",
+      "dependency_type": "SUPPLY",
+      "weight": 0.79,
+      "failure_delay_minutes": 45,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "warehouse-north",
+      "dependent_id": "shelter-east",
+      "dependency_type": "SUPPLY",
+      "weight": 0.55,
+      "failure_delay_minutes": 60,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "warehouse-south",
+      "dependent_id": "pharmacy-south",
+      "dependency_type": "SUPPLY",
+      "weight": 0.79,
+      "failure_delay_minutes": 40,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "warehouse-south",
+      "dependent_id": "hospital-south",
+      "dependency_type": "SUPPLY",
+      "weight": 0.84,
+      "failure_delay_minutes": 45,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "CRITICAL"
+    },
+    {
+      "provider_id": "warehouse-south",
+      "dependent_id": "shelter-south",
+      "dependency_type": "SUPPLY",
+      "weight": 0.58,
+      "failure_delay_minutes": 60,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "OPTIONAL"
+    },
+    {
+      "provider_id": "warehouse-south",
+      "dependent_id": "cooling-center-south",
+      "dependency_type": "SUPPLY",
+      "weight": 0.55,
+      "failure_delay_minutes": 60,
+      "restoration_requirement": "INVENTORY_REPLENISHED",
+      "requirement": "OPTIONAL"
+    }
+  ]
+}

@@ -7,14 +7,18 @@ from app.api.health import router as health_router
 from app.api.infrastructure import router as infrastructure_router
 from app.core.config import settings
 from app.services.city_data import load_city
+from app.services.dependency_data import load_dependencies
 from app.services.dependency_graph import build_dependency_graph
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     city = load_city()
+    dependencies = load_dependencies(city)
     application.state.city_data = city
-    application.state.dependency_graph = build_dependency_graph(city)
+    application.state.dependency_graph = build_dependency_graph(
+        city, dependencies.edges
+    )
     yield
 
 
