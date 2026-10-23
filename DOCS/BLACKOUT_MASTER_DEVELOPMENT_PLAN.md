@@ -124,8 +124,8 @@ Represent why one failed asset can create consequences elsewhere in the city.
 
 ### Actions
 
-1. Build a directed NetworkX graph in which every infrastructure asset is represented by its node ID.
-2. Define dependency direction clearly: an edge from A to B means B depends on A and can be affected when A degrades or fails.
+1. Build a directed NetworkX graph in which every infrastructure asset is represented by its node ID.-
+2. Define dependency direction clearly: an edge from A to B means B depends on A and can be affected when A degrades or fails.-
 3. Add dependency metadata including dependency type, weight, failure delay, restoration requirement, and whether the dependency is critical or optional.
 4. Create realistic but intentionally simplified dependency chains connecting substations to hospitals, intersections, pharmacies, cooling centers, warehouses, and neighborhoods.
 5. Include multi-hop relationships so a substation can affect a hospital directly while also affecting hospital access through traffic infrastructure.
