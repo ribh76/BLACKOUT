@@ -1,0 +1,702 @@
+{
+  "schema_version": 1,
+  "city": "San Jose, CA (simulated)",
+  "capacity_units": {
+    "SUBSTATION": "MW",
+    "HOSPITAL": "occupied beds",
+    "INTERSECTION": "vehicles per hour",
+    "PHARMACY": "prescriptions per day",
+    "SHELTER": "people",
+    "COOLING_CENTER": "people",
+    "WAREHOUSE": "pallets per day",
+    "NEIGHBORHOOD": "residents",
+    "EMERGENCY_ROUTE": "vehicles per hour"
+  },
+  "data_notice": "Synthetic planning data; locations and facilities are illustrative, not operational assets. Capacity, current load, and backup values use the type-specific units above. Population-served estimates may overlap between facilities.",
+  "nodes": [
+    {
+      "id": "substation-01",
+      "name": "Berryessa Grid Hub",
+      "type": "SUBSTATION",
+      "coordinates": {
+        "latitude": 37.3738,
+        "longitude": -121.8716
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.93,
+      "population_served": 47000,
+      "capacity": 120,
+      "current_load": 82,
+      "backup_capacity": 18,
+      "backup_remaining": 18,
+      "failure_threshold": 1.18,
+      "recovery_time_minutes": 240,
+      "vulnerability": 0.42
+    },
+    {
+      "id": "substation-03",
+      "name": "Downtown Grid Hub",
+      "type": "SUBSTATION",
+      "coordinates": {
+        "latitude": 37.3372,
+        "longitude": -121.8911
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.98,
+      "population_served": 62000,
+      "capacity": 150,
+      "current_load": 137,
+      "backup_capacity": 12,
+      "backup_remaining": 12,
+      "failure_threshold": 1.12,
+      "recovery_time_minutes": 300,
+      "vulnerability": 0.72
+    },
+    {
+      "id": "substation-05",
+      "name": "West Valley Grid Hub",
+      "type": "SUBSTATION",
+      "coordinates": {
+        "latitude": 37.3181,
+        "longitude": -121.9494
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.91,
+      "population_served": 41000,
+      "capacity": 110,
+      "current_load": 76,
+      "backup_capacity": 22,
+      "backup_remaining": 22,
+      "failure_threshold": 1.2,
+      "recovery_time_minutes": 210,
+      "vulnerability": 0.35
+    },
+    {
+      "id": "substation-07",
+      "name": "South Valley Grid Hub",
+      "type": "SUBSTATION",
+      "coordinates": {
+        "latitude": 37.2744,
+        "longitude": -121.8486
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.95,
+      "population_served": 54000,
+      "capacity": 140,
+      "current_load": 124,
+      "backup_capacity": 16,
+      "backup_remaining": 16,
+      "failure_threshold": 1.14,
+      "recovery_time_minutes": 270,
+      "vulnerability": 0.65
+    },
+    {
+      "id": "hospital-downtown",
+      "name": "Downtown Medical Hub",
+      "type": "HOSPITAL",
+      "coordinates": {
+        "latitude": 37.3358,
+        "longitude": -121.8841
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.99,
+      "population_served": 18000,
+      "capacity": 260,
+      "current_load": 212,
+      "backup_capacity": 170,
+      "backup_remaining": 170,
+      "failure_threshold": 1.08,
+      "recovery_time_minutes": 180,
+      "vulnerability": 0.78
+    },
+    {
+      "id": "hospital-west",
+      "name": "West San Jose Medical Hub",
+      "type": "HOSPITAL",
+      "coordinates": {
+        "latitude": 37.3128,
+        "longitude": -121.9288
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.97,
+      "population_served": 15000,
+      "capacity": 220,
+      "current_load": 168,
+      "backup_capacity": 155,
+      "backup_remaining": 155,
+      "failure_threshold": 1.1,
+      "recovery_time_minutes": 150,
+      "vulnerability": 0.55
+    },
+    {
+      "id": "hospital-south",
+      "name": "South Valley Medical Hub",
+      "type": "HOSPITAL",
+      "coordinates": {
+        "latitude": 37.2674,
+        "longitude": -121.8333
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.98,
+      "population_served": 16500,
+      "capacity": 240,
+      "current_load": 198,
+      "backup_capacity": 145,
+      "backup_remaining": 145,
+      "failure_threshold": 1.09,
+      "recovery_time_minutes": 180,
+      "vulnerability": 0.66
+    },
+    {
+      "id": "intersection-santa-clara-market",
+      "name": "Santa Clara / Market Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.3377,
+        "longitude": -121.8902
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.71,
+      "population_served": 4800,
+      "capacity": 1900,
+      "current_load": 1420,
+      "backup_capacity": 160,
+      "backup_remaining": 160,
+      "failure_threshold": 1.25,
+      "recovery_time_minutes": 45,
+      "vulnerability": 0.62
+    },
+    {
+      "id": "intersection-alum-rock-capitol",
+      "name": "Alum Rock / Capitol Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.3693,
+        "longitude": -121.8324
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.68,
+      "population_served": 6200,
+      "capacity": 2200,
+      "current_load": 1740,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.2,
+      "recovery_time_minutes": 60,
+      "vulnerability": 0.73
+    },
+    {
+      "id": "intersection-stevens-creek-bascom",
+      "name": "Stevens Creek / Bascom Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.3226,
+        "longitude": -121.9338
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.72,
+      "population_served": 5100,
+      "capacity": 2100,
+      "current_load": 1610,
+      "backup_capacity": 120,
+      "backup_remaining": 120,
+      "failure_threshold": 1.22,
+      "recovery_time_minutes": 50,
+      "vulnerability": 0.58
+    },
+    {
+      "id": "intersection-monterey-curtner",
+      "name": "Monterey / Curtner Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.2985,
+        "longitude": -121.8693
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.74,
+      "population_served": 6900,
+      "capacity": 2400,
+      "current_load": 1900,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.18,
+      "recovery_time_minutes": 65,
+      "vulnerability": 0.79
+    },
+    {
+      "id": "intersection-story-king",
+      "name": "Story / King Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.3322,
+        "longitude": -121.8434
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.69,
+      "population_served": 5700,
+      "capacity": 2000,
+      "current_load": 1530,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.2,
+      "recovery_time_minutes": 55,
+      "vulnerability": 0.7
+    },
+    {
+      "id": "intersection-blossom-hill-snell",
+      "name": "Blossom Hill / Snell Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.2539,
+        "longitude": -121.8375
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.73,
+      "population_served": 6600,
+      "capacity": 2300,
+      "current_load": 1810,
+      "backup_capacity": 100,
+      "backup_remaining": 100,
+      "failure_threshold": 1.2,
+      "recovery_time_minutes": 60,
+      "vulnerability": 0.65
+    },
+    {
+      "id": "intersection-north-first-tasman",
+      "name": "North First / Tasman Signal",
+      "type": "INTERSECTION",
+      "coordinates": {
+        "latitude": 37.4082,
+        "longitude": -121.9481
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.67,
+      "population_served": 4400,
+      "capacity": 1800,
+      "current_load": 1320,
+      "backup_capacity": 80,
+      "backup_remaining": 80,
+      "failure_threshold": 1.25,
+      "recovery_time_minutes": 50,
+      "vulnerability": 0.49
+    },
+    {
+      "id": "pharmacy-downtown",
+      "name": "Downtown Pharmacy Depot",
+      "type": "PHARMACY",
+      "coordinates": {
+        "latitude": 37.3364,
+        "longitude": -121.8868
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.79,
+      "population_served": 7400,
+      "capacity": 220,
+      "current_load": 158,
+      "backup_capacity": 80,
+      "backup_remaining": 80,
+      "failure_threshold": 1.15,
+      "recovery_time_minutes": 90,
+      "vulnerability": 0.72
+    },
+    {
+      "id": "pharmacy-east",
+      "name": "East San Jose Pharmacy Depot",
+      "type": "PHARMACY",
+      "coordinates": {
+        "latitude": 37.3471,
+        "longitude": -121.8268
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.76,
+      "population_served": 8600,
+      "capacity": 250,
+      "current_load": 183,
+      "backup_capacity": 60,
+      "backup_remaining": 60,
+      "failure_threshold": 1.12,
+      "recovery_time_minutes": 105,
+      "vulnerability": 0.82
+    },
+    {
+      "id": "pharmacy-west",
+      "name": "West San Jose Pharmacy Depot",
+      "type": "PHARMACY",
+      "coordinates": {
+        "latitude": 37.3157,
+        "longitude": -121.9372
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.77,
+      "population_served": 6800,
+      "capacity": 210,
+      "current_load": 149,
+      "backup_capacity": 75,
+      "backup_remaining": 75,
+      "failure_threshold": 1.17,
+      "recovery_time_minutes": 85,
+      "vulnerability": 0.61
+    },
+    {
+      "id": "pharmacy-south",
+      "name": "South San Jose Pharmacy Depot",
+      "type": "PHARMACY",
+      "coordinates": {
+        "latitude": 37.2679,
+        "longitude": -121.8464
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.78,
+      "population_served": 7900,
+      "capacity": 230,
+      "current_load": 171,
+      "backup_capacity": 55,
+      "backup_remaining": 55,
+      "failure_threshold": 1.13,
+      "recovery_time_minutes": 100,
+      "vulnerability": 0.75
+    },
+    {
+      "id": "shelter-downtown",
+      "name": "Downtown Community Shelter",
+      "type": "SHELTER",
+      "coordinates": {
+        "latitude": 37.3294,
+        "longitude": -121.8976
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.86,
+      "population_served": 2900,
+      "capacity": 360,
+      "current_load": 195,
+      "backup_capacity": 70,
+      "backup_remaining": 70,
+      "failure_threshold": 1.08,
+      "recovery_time_minutes": 75,
+      "vulnerability": 0.69
+    },
+    {
+      "id": "shelter-east",
+      "name": "Eastside Community Shelter",
+      "type": "SHELTER",
+      "coordinates": {
+        "latitude": 37.3513,
+        "longitude": -121.8181
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.85,
+      "population_served": 3400,
+      "capacity": 420,
+      "current_load": 235,
+      "backup_capacity": 50,
+      "backup_remaining": 50,
+      "failure_threshold": 1.07,
+      "recovery_time_minutes": 90,
+      "vulnerability": 0.76
+    },
+    {
+      "id": "shelter-south",
+      "name": "Southside Community Shelter",
+      "type": "SHELTER",
+      "coordinates": {
+        "latitude": 37.2603,
+        "longitude": -121.8535
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.84,
+      "population_served": 3100,
+      "capacity": 390,
+      "current_load": 210,
+      "backup_capacity": 65,
+      "backup_remaining": 65,
+      "failure_threshold": 1.08,
+      "recovery_time_minutes": 85,
+      "vulnerability": 0.7
+    },
+    {
+      "id": "cooling-center-downtown",
+      "name": "Downtown Cooling Center",
+      "type": "COOLING_CENTER",
+      "coordinates": {
+        "latitude": 37.3394,
+        "longitude": -121.8867
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.9,
+      "population_served": 4600,
+      "capacity": 520,
+      "current_load": 390,
+      "backup_capacity": 110,
+      "backup_remaining": 110,
+      "failure_threshold": 1.06,
+      "recovery_time_minutes": 70,
+      "vulnerability": 0.83
+    },
+    {
+      "id": "cooling-center-east",
+      "name": "Eastside Cooling Center",
+      "type": "COOLING_CENTER",
+      "coordinates": {
+        "latitude": 37.3501,
+        "longitude": -121.8475
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.91,
+      "population_served": 5300,
+      "capacity": 580,
+      "current_load": 445,
+      "backup_capacity": 90,
+      "backup_remaining": 90,
+      "failure_threshold": 1.05,
+      "recovery_time_minutes": 80,
+      "vulnerability": 0.89
+    },
+    {
+      "id": "cooling-center-south",
+      "name": "South Valley Cooling Center",
+      "type": "COOLING_CENTER",
+      "coordinates": {
+        "latitude": 37.2745,
+        "longitude": -121.8597
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.89,
+      "population_served": 4900,
+      "capacity": 550,
+      "current_load": 410,
+      "backup_capacity": 105,
+      "backup_remaining": 105,
+      "failure_threshold": 1.06,
+      "recovery_time_minutes": 75,
+      "vulnerability": 0.86
+    },
+    {
+      "id": "warehouse-north",
+      "name": "North Supply Warehouse",
+      "type": "WAREHOUSE",
+      "coordinates": {
+        "latitude": 37.4012,
+        "longitude": -121.8993
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.76,
+      "population_served": 20000,
+      "capacity": 650,
+      "current_load": 385,
+      "backup_capacity": 120,
+      "backup_remaining": 120,
+      "failure_threshold": 1.3,
+      "recovery_time_minutes": 120,
+      "vulnerability": 0.46
+    },
+    {
+      "id": "warehouse-south",
+      "name": "South Supply Warehouse",
+      "type": "WAREHOUSE",
+      "coordinates": {
+        "latitude": 37.2798,
+        "longitude": -121.8745
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.77,
+      "population_served": 18000,
+      "capacity": 600,
+      "current_load": 370,
+      "backup_capacity": 90,
+      "backup_remaining": 90,
+      "failure_threshold": 1.28,
+      "recovery_time_minutes": 130,
+      "vulnerability": 0.58
+    },
+    {
+      "id": "neighborhood-berryessa",
+      "name": "Berryessa Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.3851,
+        "longitude": -121.8606
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.67,
+      "population_served": 13500,
+      "capacity": 13500,
+      "current_load": 12400,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.1,
+      "recovery_time_minutes": 360,
+      "vulnerability": 0.53
+    },
+    {
+      "id": "neighborhood-downtown",
+      "name": "Downtown Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.3386,
+        "longitude": -121.8904
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.8,
+      "population_served": 17200,
+      "capacity": 17200,
+      "current_load": 15800,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.08,
+      "recovery_time_minutes": 420,
+      "vulnerability": 0.82
+    },
+    {
+      "id": "neighborhood-east",
+      "name": "East San Jose Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.3492,
+        "longitude": -121.8301
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.75,
+      "population_served": 19400,
+      "capacity": 19400,
+      "current_load": 17600,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.08,
+      "recovery_time_minutes": 420,
+      "vulnerability": 0.88
+    },
+    {
+      "id": "neighborhood-west",
+      "name": "West San Jose Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.3188,
+        "longitude": -121.9438
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.69,
+      "population_served": 14800,
+      "capacity": 14800,
+      "current_load": 13200,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.1,
+      "recovery_time_minutes": 390,
+      "vulnerability": 0.64
+    },
+    {
+      "id": "neighborhood-willow-glen",
+      "name": "Willow Glen Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.2958,
+        "longitude": -121.8897
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.72,
+      "population_served": 12600,
+      "capacity": 12600,
+      "current_load": 11300,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.1,
+      "recovery_time_minutes": 390,
+      "vulnerability": 0.67
+    },
+    {
+      "id": "neighborhood-south",
+      "name": "South San Jose Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.2656,
+        "longitude": -121.8487
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.76,
+      "population_served": 18400,
+      "capacity": 18400,
+      "current_load": 16900,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.08,
+      "recovery_time_minutes": 420,
+      "vulnerability": 0.77
+    },
+    {
+      "id": "neighborhood-almaden",
+      "name": "Almaden Neighborhood",
+      "type": "NEIGHBORHOOD",
+      "coordinates": {
+        "latitude": 37.2389,
+        "longitude": -121.9027
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.65,
+      "population_served": 11700,
+      "capacity": 11700,
+      "current_load": 10400,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.12,
+      "recovery_time_minutes": 450,
+      "vulnerability": 0.56
+    },
+    {
+      "id": "emergency-route-north",
+      "name": "North Medical Access Route",
+      "type": "EMERGENCY_ROUTE",
+      "coordinates": {
+        "latitude": 37.3684,
+        "longitude": -121.8909
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.88,
+      "population_served": 16400,
+      "capacity": 2800,
+      "current_load": 2020,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.2,
+      "recovery_time_minutes": 80,
+      "vulnerability": 0.58
+    },
+    {
+      "id": "emergency-route-east",
+      "name": "East Relief Access Route",
+      "type": "EMERGENCY_ROUTE",
+      "coordinates": {
+        "latitude": 37.3421,
+        "longitude": -121.8465
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.87,
+      "population_served": 18200,
+      "capacity": 2600,
+      "current_load": 1940,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.18,
+      "recovery_time_minutes": 95,
+      "vulnerability": 0.72
+    },
+    {
+      "id": "emergency-route-south",
+      "name": "South Medical Access Route",
+      "type": "EMERGENCY_ROUTE",
+      "coordinates": {
+        "latitude": 37.2852,
+        "longitude": -121.8596
+      },
+      "status": "OPERATIONAL",
+      "criticality": 0.9,
+      "population_served": 17500,
+      "capacity": 2700,
+      "current_load": 2160,
+      "backup_capacity": 0,
+      "backup_remaining": 0,
+      "failure_threshold": 1.17,
+      "recovery_time_minutes": 90,
+      "vulnerability": 0.75
+    }
+  ]
+}

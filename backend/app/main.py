@@ -1,10 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.core.config import settings
+from app.services.city_data import load_city
 
-app = FastAPI(title="Blackout API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    application.state.city_data = load_city()
+    yield
+
+
+app = FastAPI(title="Blackout API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
