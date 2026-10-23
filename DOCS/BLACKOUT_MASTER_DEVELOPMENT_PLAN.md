@@ -129,9 +129,9 @@ Represent why one failed asset can create consequences elsewhere in the city.
 3. Add dependency metadata including dependency type, weight, failure delay, restoration requirement, and whether the dependency is critical or optional.-
 4. Create realistic but intentionally simplified dependency chains connecting substations to hospitals, intersections, pharmacies, cooling centers, warehouses, and neighborhoods.-
 5. Include multi-hop relationships so a substation can affect a hospital directly while also affecting hospital access through traffic infrastructure.-
-6. Implement `get_dependencies`, `get_dependents`, `get_downstream_nodes`, and `get_upstream_nodes` services.
-7. Implement path tracing that returns the exact dependency path between two nodes, including edge metadata.
-8. Implement downstream impact counts, affected population totals, and affected critical-facility counts.
+6. Implement `get_dependencies`, `get_dependents`, `get_downstream_nodes`, and `get_upstream_nodes` services.-
+7. Implement path tracing that returns the exact dependency path between two nodes, including edge metadata.-
+8. Implement downstream impact counts, affected population totals, and affected critical-facility counts.-
 9. Add `GET /api/infrastructure/{node_id}/dependencies` and `GET /api/infrastructure/{node_id}/impact`.
 10. Add tests for direct dependencies, multi-hop traversal, directionality, missing nodes, cycles, and known expected impact totals.
 

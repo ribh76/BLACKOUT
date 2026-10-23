@@ -69,3 +69,31 @@ class DependencyData(BaseModel):
                 )
             seen[pair] = index
         return self
+
+
+class DependencyPath(BaseModel):
+    """A shortest directed path and the exact metadata for each hop."""
+
+    source_id: str
+    target_id: str
+    node_ids: list[str]
+    edges: list[DependencyEdge]
+
+
+class DownstreamImpact(BaseModel):
+    """Potential exposure if the source asset degrades or fails.
+
+    affected_population counts residents in downstream neighborhoods only.
+    service_population_exposure sums population_served across every downstream
+    asset and can count the same person more than once.
+    Critical facilities are substations, hospitals, pharmacies, shelters, and
+    cooling centers.
+    """
+
+    source_id: str
+    downstream_node_ids: list[str]
+    downstream_node_count: int = Field(ge=0)
+    affected_population: int = Field(ge=0)
+    service_population_exposure: int = Field(ge=0)
+    critical_facility_ids: list[str]
+    critical_facility_count: int = Field(ge=0)
