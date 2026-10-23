@@ -27,7 +27,18 @@ def test_seed_city_is_valid_and_covers_every_infrastructure_type() -> None:
 
     counts = Counter(node.type for node in nodes)
     assert set(counts) == set(InfrastructureType)
-    assert all(count >= 2 for count in counts.values())
+    minimum_counts = {
+        InfrastructureType.SUBSTATION: 4,
+        InfrastructureType.HOSPITAL: 3,
+        InfrastructureType.INTERSECTION: 7,
+        InfrastructureType.PHARMACY: 4,
+        InfrastructureType.SHELTER: 3,
+        InfrastructureType.COOLING_CENTER: 3,
+        InfrastructureType.WAREHOUSE: 2,
+        InfrastructureType.NEIGHBORHOOD: 7,
+        InfrastructureType.EMERGENCY_ROUTE: 3,
+    }
+    assert all(counts[kind] >= minimum for kind, minimum in minimum_counts.items())
 
     # Keep the seed in the San Jose area; the model itself accepts global coordinates.
     assert all(37.20 <= node.coordinates.latitude <= 37.43 for node in nodes)

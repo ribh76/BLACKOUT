@@ -1,0 +1,1 @@
+"""Stable HTTP response schemas."""

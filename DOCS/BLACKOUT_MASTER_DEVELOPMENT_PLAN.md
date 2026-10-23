@@ -69,15 +69,15 @@ Create a clean, runnable repository that supports parallel backend/frontend work
    └── .env.example
    ```
 
-2. Initialize the FastAPI backend and React/TypeScript frontend with a documented local development command.
-3. Add `GET /api/health` and verify that the frontend can call it and render a successful response.
-4. Add environment configuration for development mode, CORS, API URL, AI provider selection, Anthropic credentials, and future Nebius credentials.
-5. Install only the initial dependencies: FastAPI, Pydantic, NetworkX, pytest, HTTPX, React, TypeScript, and the chosen map library.
-6. Add formatting, linting, type-checking, and test commands for both backend and frontend.
-7. Add a root-level `Makefile` or equivalent scripts for `dev`, `backend`, `frontend`, `test`, `lint`, and `format`.
-8. Establish branch and pull-request conventions, including small feature branches, descriptive commits, and a requirement that the application still starts before merging.
-9. Add an open-source license immediately and explain the project purpose and simulated-data disclaimer in the initial README.
-10. Add a minimal CI workflow that installs dependencies and runs backend tests, frontend checks, and linting.
+2. Initialize the FastAPI backend and React/TypeScript frontend with a documented local development command. - 
+3. Add `GET /api/health` and verify that the frontend can call it and render a successful response. - 
+4. Add environment configuration for development mode, CORS, API URL, AI provider selection, Anthropic credentials, and future Nebius credentials. - 
+5. Install only the initial dependencies: FastAPI, Pydantic, NetworkX, pytest, HTTPX, React, TypeScript, and the chosen map library. - 
+6. Add formatting, linting, type-checking, and test commands for both backend and frontend. - 
+7. Add a root-level `Makefile` or equivalent scripts for `dev`, `backend`, `frontend`, `test`, `lint`, and `format`. - 
+8. Establish branch and pull-request conventions, including small feature branches, descriptive commits, and a requirement that the application still starts before merging. - 
+9. Add an open-source license immediately and explain the project purpose and simulated-data disclaimer in the initial README. - 
+10. Add a minimal CI workflow that installs dependencies and runs backend tests, frontend checks, and linting. - 
 
 ### Exit condition
 
@@ -98,16 +98,16 @@ Define the simulated city as validated, serializable infrastructure data rather 
 
 ### Actions
 
-1. Define an `InfrastructureNode` model with identifiers, name, type, coordinates, status, criticality, population served, capacity, current load, backup capacity, backup remaining, failure threshold, recovery time, and vulnerability.
-2. Define strict node-status values: `OPERATIONAL`, `DEGRADED`, `CRITICAL`, and `FAILED`.
-3. Define infrastructure types for substations, hospitals, intersections, pharmacies, shelters, cooling centers, warehouses, neighborhoods, and emergency routes.
-4. Create approximately 30–40 simulated San Jose nodes with plausible coordinates and meaningful attributes.
-5. Design node attributes so different infrastructure behaves differently; a hospital should not be treated like a neighborhood or a traffic signal.
-6. Store the initial city in version-controlled JSON or TOML under `backend/data/`, with a schema version so future data changes are explicit.
-7. Implement a city-data loader that validates every record at startup and produces clear errors for duplicate IDs, invalid types, impossible coordinates, or missing required fields.
-8. Implement lookup services for retrieving one node, filtering by type/status, and returning the complete city snapshot.
-9. Add `GET /api/infrastructure` and `GET /api/infrastructure/{node_id}` with stable response schemas.
-10. Write tests covering data loading, validation, lookup behavior, serialization, and the expected minimum number of nodes by type.
+1. Define an `InfrastructureNode` model with identifiers, name, type, coordinates, status, criticality, population served, capacity, current load, backup capacity, backup remaining, failure threshold, recovery time, and vulnerability.-
+2. Define strict node-status values: `OPERATIONAL`, `DEGRADED`, `CRITICAL`, and `FAILED`.-
+3. Define infrastructure types for substations, hospitals, intersections, pharmacies, shelters, cooling centers, warehouses, neighborhoods, and emergency routes.-
+4. Create approximately 30–40 simulated San Jose nodes with plausible coordinates and meaningful attributes.-
+5. Design node attributes so different infrastructure behaves differently; a hospital should not be treated like a neighborhood or a traffic signal.-
+6. Store the initial city in version-controlled JSON or TOML under `backend/data/`, with a schema version so future data changes are explicit.-
+7. Implement a city-data loader that validates every record at startup and produces clear errors for duplicate IDs, invalid types, impossible coordinates, or missing required fields.-
+8. Implement lookup services for retrieving one node, filtering by type/status, and returning the complete city snapshot.-
+9. Add `GET /api/infrastructure` and `GET /api/infrastructure/{node_id}` with stable response schemas.-
+10. Write tests covering data loading, validation, lookup behavior, serialization, and the expected minimum number of nodes by type.-
 
 ### Exit condition
 
