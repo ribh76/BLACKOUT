@@ -17,12 +17,17 @@ copied, and the same input produces the same timeline and final metrics.
   100°F adds `(temperature_f - 100) / 100 * vulnerability` stress.
 - Effective load ratio is `current_load / capacity * (1 + dependency_pressure)
   + load_stress`. The node's `failure_threshold` gates a failed target state.
+  Cooling centers instead increase demand by 2% per degree above 95°F and
+  reduce usable capacity by up to 35% as power pressure rises; nonpower
+  pressure and load stress still apply.
 
 ## Backup and status
 
 - A critical or failed power provider activates a dependent node's backup if
   reserve remains. Coverage is limited by `backup_capacity / current_load`
-  and the fraction of reserve still available. Backup reduces power pressure.
+  and the fraction of reserve still available. Hospitals prioritize essential
+  circuits and retain their coverage level until reserve is exhausted. Backup
+  reduces power pressure.
 - For each 30-minute outage tick, reserve is reduced by half the node's
   `current_load` (one-hour equivalent reserve units), to a floor of zero. The
   tick uses the reserve available at its start. Activation, depletion, and
@@ -35,6 +40,24 @@ copied, and the same input produces the same timeline and final metrics.
 - Nonfailed nodes recover one rung only after a continuous healthy period of
   at least `recovery_time_minutes`. Failed nodes require a future repair
   intervention; they do not recover spontaneously.
+
+## Facility behavior
+
+- A hospital with full backup coverage remains degraded during a power outage
+  until its reserve is exhausted. Partial coverage can still allow critical
+  status if load and pressure are high enough.
+- A pharmacy's refrigeration clock advances only during unprotected power
+  loss. At 30, 60, and 90 minutes of lost refrigeration, its power-driven
+  status progresses to degraded, critical, and potentially failed. Failure
+  also requires crossing the pharmacy's `failure_threshold`. Available backup
+  holds the refrigeration clock at zero.
+- An intersection's signal clock uses the same 30/60/90-minute stages after
+  battery backup is exhausted; failure also requires crossing the
+  intersection's `failure_threshold`. Signal loss is recorded as the
+  transition cause.
+- A neighborhood transition reports `population_exposed`, the residents
+  served by that neighborhood while it is impaired. Final affected population
+  counts each impaired neighborhood once, regardless of its status rung.
 
 `SimulationState` holds the city snapshot and exposure timers,
 `SimulationEvent` records changes and causes, and `SimulationResult` holds the

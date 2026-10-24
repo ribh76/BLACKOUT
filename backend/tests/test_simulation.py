@@ -145,6 +145,179 @@ def test_backup_activates_depletes_and_changes_power_failure_timing() -> None:
     ]
 
 
+def test_hospital_backup_delays_critical_power_loss() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [one_edge("substation-03", "hospital-downtown")]
+    hospital = next(node for node in snapshot.nodes if node.id == "hospital-downtown")
+    hospital.backup_capacity = 500
+    hospital.backup_remaining = 500
+    protected = run_simulation(snapshot)
+    unprotected_snapshot = snapshot.model_copy(deep=True)
+    unprotected_hospital = next(
+        node for node in unprotected_snapshot.nodes if node.id == "hospital-downtown"
+    )
+    unprotected_hospital.backup_remaining = 0
+    unprotected = run_simulation(unprotected_snapshot)
+
+    assert node_status(protected, 30, "hospital-downtown") is NodeStatus.DEGRADED
+    assert node_status(protected, 60, "hospital-downtown") is NodeStatus.DEGRADED
+    assert node_status(unprotected, 60, "hospital-downtown") is NodeStatus.CRITICAL
+
+
+def test_pharmacy_refrigeration_escalates_after_unprotected_power_loss() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [one_edge("substation-03", "pharmacy-downtown")]
+    pharmacy = next(node for node in snapshot.nodes if node.id == "pharmacy-downtown")
+    pharmacy.backup_remaining = 0
+    result = run_simulation(snapshot)
+
+    assert [
+        state.refrigeration_unpowered_minutes.get("pharmacy-downtown", 0)
+        for state in result.states
+    ] == [0, 30, 60, 90, 120]
+    assert [
+        node_status(result, minute, "pharmacy-downtown") for minute in (0, 30, 60, 90)
+    ] == [
+        NodeStatus.OPERATIONAL,
+        NodeStatus.DEGRADED,
+        NodeStatus.CRITICAL,
+        NodeStatus.FAILED,
+    ]
+    assert any(
+        event.cause == "REFRIGERATION_LOSS"
+        for event in result.events
+        if event.node_id == "pharmacy-downtown"
+    )
+
+
+def test_pharmacy_backup_preserves_refrigeration_until_exhausted() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [one_edge("substation-03", "pharmacy-downtown")]
+    result = run_simulation(snapshot)
+
+    assert [
+        state.refrigeration_unpowered_minutes.get("pharmacy-downtown", 0)
+        for state in result.states
+    ] == [0, 0, 30, 60, 90]
+    assert node_status(result, 60, "pharmacy-downtown") is NodeStatus.DEGRADED
+    assert node_status(result, 90, "pharmacy-downtown") is NodeStatus.CRITICAL
+
+
+def test_refrigeration_outage_does_not_fail_below_asset_threshold() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [
+        one_edge("substation-03", "pharmacy-downtown").model_copy(
+            update={"weight": 0.1}
+        )
+    ]
+    pharmacy = next(node for node in snapshot.nodes if node.id == "pharmacy-downtown")
+    pharmacy.backup_remaining = 0
+    result = run_simulation(snapshot)
+
+    assert node_status(result, 60, "pharmacy-downtown") is NodeStatus.CRITICAL
+    assert node_status(result, 90, "pharmacy-downtown") is NodeStatus.CRITICAL
+    assert node_status(result, 120, "pharmacy-downtown") is NodeStatus.CRITICAL
+
+
+def test_intersection_signal_loss_waits_for_backup_depletion() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [
+        one_edge("substation-03", "intersection-santa-clara-market")
+    ]
+    intersection = next(
+        node for node in snapshot.nodes if node.id == "intersection-santa-clara-market"
+    )
+    intersection.backup_capacity = 3000
+    intersection.backup_remaining = 3000
+    result = run_simulation(snapshot)
+
+    assert [
+        state.signal_unpowered_minutes.get("intersection-santa-clara-market", 0)
+        for state in result.states
+    ] == [0, 0, 0, 0, 0]
+    assert node_status(result, 120, "intersection-santa-clara-market") in (
+        NodeStatus.OPERATIONAL,
+        NodeStatus.DEGRADED,
+    )
+
+
+def test_intersection_without_backup_loses_signals_in_stages() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [
+        one_edge("substation-03", "intersection-santa-clara-market")
+    ]
+    intersection = next(
+        node for node in snapshot.nodes if node.id == "intersection-santa-clara-market"
+    )
+    intersection.backup_remaining = 0
+    result = run_simulation(snapshot)
+
+    assert [
+        state.signal_unpowered_minutes.get("intersection-santa-clara-market", 0)
+        for state in result.states
+    ] == [0, 30, 60, 90, 120]
+    assert [
+        node_status(result, minute, "intersection-santa-clara-market")
+        for minute in (0, 30, 60, 90)
+    ] == [
+        NodeStatus.OPERATIONAL,
+        NodeStatus.DEGRADED,
+        NodeStatus.CRITICAL,
+        NodeStatus.FAILED,
+    ]
+    assert any(
+        event.cause == "SIGNAL_LOSS"
+        for event in result.events
+        if event.node_id == "intersection-santa-clara-market"
+    )
+
+
+def test_cooling_center_heat_demand_reduces_spare_capacity() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = []
+    center = next(node for node in snapshot.nodes if node.id == "cooling-center-east")
+    center.current_load = center.capacity * 0.9
+    heated = run_simulation(snapshot)
+    mild_snapshot = snapshot.model_copy(deep=True)
+    mild_snapshot.temperature_f = 95
+    mild = run_simulation(mild_snapshot)
+
+    assert node_status(heated, 30, "cooling-center-east") is NodeStatus.DEGRADED
+    assert node_status(mild, 30, "cooling-center-east") is NodeStatus.OPERATIONAL
+
+
+def test_neighborhood_transition_records_resident_impact_once() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [one_edge("substation-03", "neighborhood-downtown")]
+    result = run_simulation(snapshot)
+
+    assert node_status(result, 30, "neighborhood-downtown") is NodeStatus.DEGRADED
+    neighborhood_events = [
+        event for event in result.events if event.node_id == "neighborhood-downtown"
+    ]
+    assert [event.population_exposed for event in neighborhood_events] == [17200] * len(
+        neighborhood_events
+    )
+    assert result.final_metrics.affected_population == 17200
+
+
+def test_initial_neighborhood_event_also_records_resident_impact() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = []
+    snapshot = apply_initial_event(
+        snapshot, "neighborhood-downtown", NodeStatus.DEGRADED
+    )
+    result = run_simulation(snapshot)
+
+    initial = next(
+        event
+        for event in result.events
+        if event.elapsed_minutes == 0 and event.node_id == "neighborhood-downtown"
+    )
+    assert initial.population_exposed == 17200
+    assert result.final_metrics.affected_population == 17200
+
+
 def test_load_stress_alone_uses_failure_threshold_and_all_status_rungs() -> None:
     snapshot = started_snapshot()
     snapshot.dependency_edges = []

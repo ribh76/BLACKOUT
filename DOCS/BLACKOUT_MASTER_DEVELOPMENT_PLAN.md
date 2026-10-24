@@ -180,12 +180,12 @@ Model how an initial failure propagates through dependencies over discrete time.
 
 ### Actions
 
-1. Define a simulation clock with discrete ticks such as `T+30`, `T+60`, `T+90`, and `T+120` minutes.
-2. Define a `SimulationState`, `SimulationEvent`, and `SimulationResult` model so state, transitions, and final metrics are separate concepts.
-3. Implement deterministic rules for dependency pressure, load stress, backup activation, backup depletion, recovery delay, and status transitions.
-4. Implement the status progression `OPERATIONAL → DEGRADED → CRITICAL → FAILED`; do not collapse every outcome into a binary failure.
-5. Apply dependency delays so a dependent can degrade immediately, become critical later, and fail only after a threshold is crossed.
-6. Model infrastructure-specific behavior, including hospital backup power, pharmacy refrigeration, intersection signal loss, cooling-center capacity, and neighborhood population impact.
+1. Define a simulation clock with discrete ticks such as `T+30`, `T+60`, `T+90`, and `T+120` minutes.-
+2. Define a `SimulationState`, `SimulationEvent`, and `SimulationResult` model so state, transitions, and final metrics are separate concepts.-
+3. Implement deterministic rules for dependency pressure, load stress, backup activation, backup depletion, recovery delay, and status transitions.-
+4. Implement the status progression `OPERATIONAL → DEGRADED → CRITICAL → FAILED`; do not collapse every outcome into a binary failure.-
+5. Apply dependency delays so a dependent can degrade immediately, become critical later, and fail only after a threshold is crossed.-
+6. Model infrastructure-specific behavior, including hospital backup power, pharmacy refrigeration, intersection signal loss, cooling-center capacity, and neighborhood population impact.-
 7. Record every state transition with timestamp, node ID, old status, new status, cause, source node, and human-readable explanation.
 8. Return a complete timeline, final node states, affected population, failed infrastructure count, critical-facility count, and system-risk placeholder.
 9. Ensure deterministic reproducibility for the MVP; use a seeded random generator only if stochastic behavior is later introduced.

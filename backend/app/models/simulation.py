@@ -30,6 +30,7 @@ class SimulationEvent(BaseModel):
     cause: str
     source_node_id: str | None = None
     explanation: str
+    population_exposed: int = Field(default=0, ge=0)
 
 
 class SimulationState(BaseModel):
@@ -42,6 +43,8 @@ class SimulationState(BaseModel):
     impaired_since_minutes: dict[str, int]
     healthy_minutes: dict[str, int]
     backup_active: set[str]
+    refrigeration_unpowered_minutes: dict[str, int]
+    signal_unpowered_minutes: dict[str, int]
 
 
 class SimulationMetrics(BaseModel):
