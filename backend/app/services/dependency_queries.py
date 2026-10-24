@@ -54,6 +54,26 @@ def get_upstream_nodes(graph: nx.DiGraph, node_id: str) -> list[str]:
     return sorted(nx.ancestors(graph, node_id) - {node_id})
 
 
+def get_dependency_edge(
+    graph: nx.DiGraph, provider_id: str, dependent_id: str
+) -> DependencyEdge:
+    """Return validated metadata for one provider-to-dependent edge."""
+
+    metadata = graph.edges[provider_id, dependent_id]
+    try:
+        return DependencyEdge.model_validate(
+            {
+                "provider_id": provider_id,
+                "dependent_id": dependent_id,
+                **metadata,
+            }
+        )
+    except ValidationError as exc:
+        raise DependencyGraphError(
+            f"Invalid metadata on dependency {provider_id!r} -> {dependent_id!r}: {exc}"
+        ) from exc
+
+
 def trace_dependency_path(
     graph: nx.DiGraph, source_id: str, target_id: str
 ) -> DependencyPath | None:
@@ -81,24 +101,10 @@ def trace_dependency_path(
         node_ids.append(parent)
     node_ids.reverse()
 
-    edges: list[DependencyEdge] = []
-    for provider_id, dependent_id in zip(node_ids, node_ids[1:]):
-        metadata = graph.edges[provider_id, dependent_id]
-        try:
-            edges.append(
-                DependencyEdge.model_validate(
-                    {
-                        "provider_id": provider_id,
-                        "dependent_id": dependent_id,
-                        **metadata,
-                    }
-                )
-            )
-        except ValidationError as exc:
-            raise DependencyGraphError(
-                f"Invalid metadata on dependency {provider_id!r} -> "
-                f"{dependent_id!r}: {exc}"
-            ) from exc
+    edges = [
+        get_dependency_edge(graph, provider_id, dependent_id)
+        for provider_id, dependent_id in zip(node_ids, node_ids[1:])
+    ]
 
     return DependencyPath(
         source_id=source_id,
