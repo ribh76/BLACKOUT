@@ -19,6 +19,7 @@ class ResourceInventory(BaseModel):
     electrical_crews: int = Field(ge=0)
     traffic_crews: int = Field(ge=0)
     emergency_vehicles: int = Field(ge=0)
+    response_personnel: int = Field(default=0, ge=0)
 
 
 class Scenario(BaseModel):

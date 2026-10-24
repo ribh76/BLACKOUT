@@ -14,6 +14,7 @@
     "fuel_gallons": 1200,
     "electrical_crews": 2,
     "traffic_crews": 2,
-    "emergency_vehicles": 6
+    "emergency_vehicles": 6,
+    "response_personnel": 12
   }
 }

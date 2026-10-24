@@ -13,7 +13,7 @@ for a replay snapshot. Its `schema_version` is `1`. The snapshot includes:
 | `grid_load` | number from 0 to 1 | Fraction of rated grid capacity. |
 | `nodes` | array of `InfrastructureNode` | Full per-node identity, coordinates, status, load, backup, thresholds, and other graph-relevant attributes. |
 | `dependency_edges` | array of `DependencyEdge` | Directed provider-to-dependent edges and their weights, delays, requirements, and restoration rules. |
-| `resource_inventory` | `ResourceInventory` object | Nonnegative counts for mobile generators, fuel gallons, electrical crews, traffic crews, and emergency vehicles. |
+| `resource_inventory` | `ResourceInventory` object | Nonnegative counts for mobile generators, fuel gallons, electrical crews, traffic crews, emergency vehicles, and response personnel. |
 | `event_history` | array of `ScenarioEvent` | Ordered `{sequence, time, node_id, status}` transitions. Empty before start; initial events occur at T+0. |
 
 Arrays retain the versioned city and dependency seed order. Initial failures
@@ -22,3 +22,11 @@ starts from a private deep copy of the pristine snapshot, so edits to a
 returned snapshot or to the original seed objects cannot change another run.
 `CityState.model_validate_json(snapshot.model_dump_json())` round-trips the
 format for storage or comparison.
+
+Manual actions use the `Intervention` contract in
+`backend/app/models/intervention.py`: ID, type, target node ID, timezone-aware
+start time, positive duration in minutes, prerequisites, resource costs,
+expected effects, and execution status. `propose_intervention` uses the five
+initial action definitions to check target type, timing, current state, and
+inventory without consuming resources or changing a snapshot. Actual
+scheduling, resource reservation, and simulator effects are later steps.

@@ -184,6 +184,7 @@ def test_invalid_scenario_is_rejected(
         "electrical_crews",
         "traffic_crews",
         "emergency_vehicles",
+        "response_personnel",
     ],
 )
 @pytest.mark.parametrize("invalid_quantity", [-1, "many"])
