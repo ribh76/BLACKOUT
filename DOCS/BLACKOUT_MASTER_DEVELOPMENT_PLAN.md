@@ -228,10 +228,10 @@ Turn the deterministic engine into the first unmistakable Blackout experience: p
 6. Add the `SIMULATE BLACKOUT` control and connect it to the scenario endpoint.-
 7. Animate returned simulation events in timestamp order rather than changing every node instantly.-
 8. Add simulation-clock, pause, resume, reset, loading, and error states.-
-9. Add an event feed showing timestamp, node, transition, and cause.
-10. Add high-level metrics for people affected, critical facilities, failed infrastructure, and current system risk.
-11. Prevent duplicate runs, stale responses, and accidental state mixing when the user resets or reruns a scenario.
-12. Add a frontend test or manual QA checklist for map rendering, event ordering, reset behavior, and API failures.
+9. Add an event feed showing timestamp, node, transition, and cause.-
+10. Add high-level metrics for people affected, critical facilities, failed infrastructure, and current system risk.-
+11. Prevent duplicate runs, stale responses, and accidental state mixing when the user resets or reruns a scenario.-
+12. Add a frontend test or manual QA checklist for map rendering, event ordering, reset behavior, and API failures.-
 
 ### Exit condition
 
@@ -252,15 +252,80 @@ Distinguish a failed asset from an asset whose failure matters most to the city.
 
 ### Actions
 
-1. Define base criticality weights by infrastructure type, with hospitals and substations weighted above ordinary intersections or warehouses.
-2. Normalize population served so large populations contribute meaningfully without overwhelming every other signal.
-3. Incorporate direct and downstream dependency counts into impact scoring.
-4. Incorporate vulnerability, backup availability, current load, and recovery time.
-5. Calculate impact using a documented formula such as:
+1. Define base criticality weights by infrastructure type, with hospitals and substations weighted above ordinary intersections or warehouses.-
+2. Normalize population served so large populations contribute meaningfully without overwhelming every other signal.-
+3. Incorporate direct and downstream dependency counts into impact scoring.-
+4. Incorporate vulnerability, backup availability, current load, and recovery time.-
+5. Calculate impact using the following 
 
    ```text
-   Impactᵢ = wc·Cᵢ + wp·Pᵢ + wd·Dᵢ + wv·Vᵢ
-   Riskᵢ   = FailureProbabilityᵢ × Impactᵢ
+   HumanExposure_i = log(1 + PopulationServed_i) / log(1 + MaxPopulationServed)
+   RawSystemicImpact_i = SUM over every downstream node j of: Criticality_j * (PropagationDecay ^ Distance_ij)
+   SystemicImpact_i = Normalize(RawSystemicImpact_i)
+   Recommended: PropagationDecay = 0.70
+
+   impact score: 
+   Impact_i = (0.30 * Criticality_i) + (0.25 * HumanExposure_i) + (0.30 * SystemicImpact_i) + (0.15 * PopulationVulnerability_i)
+   All inputs should be normalized to the range [0, 1].
+
+   DisplayedImpactScore_i = 100 * Impact_i
+
+   DependencyDegradation_i = SUM(DependencyWeight_ji * FailureState_j) / SUM(DependencyWeight_ji)
+
+   Failure-state values: 
+
+    OPERATIONAL = 0.00
+    DEGRADED    = 0.33
+    CRITICAL    = 0.67
+    FAILED      = 1.00
+
+    Current load / stress: 
+    LoadStress_i = CurrentLoad_i / Capacity_i 
+    (clamp/ normalize) 
+
+    Environmental Stress: 
+    EnvironmentalStress_i = (TemperatureWeight * TemperatureStress_i) + (GridWeight * GridStress_i)
+
+    All component values should be normalized to [0, 1].
+
+    Backup/Resilience: 
+    BackupResilience_i = BackupAvailability_i * BackupRemaining_i
+
+    BackupAvailability = 1 if backup exists, otherwise 0
+    BackupRemaining = normalized remaining backup capacity in the range [0, 1]
+
+    Failure Liklihood: 
+    FailureLikelihood_i = sigmoid( -2.5 + (1.5 * LoadStress_i) + (2.0 * DependencyDegradation_i) + (1.0 * EnvironmentalStress_i) - (1.5 * BackupResilience_i) )
+
+    Where:  sigmoid(x) = 1 / (1 + exp(-x))
+
+    FailureLikelihood_i is in the range [0, 1].
+
+    IMPORTANT:
+    This represents SIMULATED FAILURE LIKELIHOOD.
+    The coefficients are simulation parameters and are not
+    empirically validated real-world infrastructure probabilities.
+
+    Risk Score: 
+
+    Risk_i = FailureLikelihood_i * Impact_i
+
+    DisplayedRiskScore_i = 100 * Risk_i
+
+    Operational Ugency: 
+    RawUrgency_i =
+    Risk_i * (1 + (UrgencyStrength / (TimeToFailure_i + Epsilon)) )
+    OperationalPriority_i = Normalize(RawUrgency_i)
+
+    TimeToFailure_i = estimated time until the node becomes CRITICAL or FAILED
+
+    UrgencyStrength = controls how strongly time affects priority
+
+    Epsilon = small positive value preventing division by zero
+
+
+
+
    ```
 
 6. Derive failure probability from current state, scenario stress, dependency pressure, and remaining backup rather than inventing it in the UI.
