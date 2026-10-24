@@ -65,6 +65,9 @@ Select a map symbol to inspect its current condition, load, and backup.
 `SIMULATE BLACKOUT` retrieves the deterministic cascade and plays its events
 in order; Pause, Resume, and Reset control the local playback. The event feed
 shows each transition and its cause.
+The live metrics count affected neighborhoods, critical facilities, and failed
+assets from the currently displayed nodes. System risk remains "Not scored"
+until the backend risk engine supplies a score.
 
 ## Contribution conventions
 

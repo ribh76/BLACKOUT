@@ -15,7 +15,7 @@ const compiled = ts.transpileModule(source, {
     target: ts.ScriptTarget.ES2022,
   },
 }).outputText;
-const { applyPlaybackStep, buildPlaybackSteps } = await import(
+const { applyPlaybackStep, buildPlaybackSteps, currentMetrics } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
 
@@ -99,4 +99,30 @@ test("rejects events that cannot be placed before the final snapshot", () => {
       }),
     /beyond the final state/,
   );
+});
+
+test("current metrics follow the backend neighborhood and facility rules", () => {
+  const nodes = [
+    { ...baseNode, status: "FAILED", type: "SUBSTATION" },
+    {
+      ...baseNode,
+      id: "east",
+      status: "DEGRADED",
+      type: "NEIGHBORHOOD",
+      population_served: 1200,
+    },
+    {
+      ...baseNode,
+      id: "west",
+      status: "OPERATIONAL",
+      type: "NEIGHBORHOOD",
+      population_served: 3000,
+    },
+    { ...baseNode, id: "route", status: "CRITICAL", type: "EMERGENCY_ROUTE" },
+  ];
+  assert.deepEqual(currentMetrics(nodes), {
+    affectedPopulation: 1200,
+    criticalFacilities: 1,
+    failedInfrastructure: 1,
+  });
 });

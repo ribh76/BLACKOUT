@@ -49,6 +49,7 @@ export type SimulationResult = {
   scenario_id: string;
   states: SimulationState[];
   events: SimulationEvent[];
+  final_metrics: { system_risk_score: number | null };
 };
 export type PlaybackStep =
   | { kind: "event"; elapsed_minutes: number; event: SimulationEvent }
@@ -102,4 +103,30 @@ export function applyPlaybackStep(
       ? { ...node, status: step.event.new_status }
       : node,
   );
+}
+
+const criticalFacilityTypes = new Set<InfrastructureType>([
+  "SUBSTATION",
+  "HOSPITAL",
+  "PHARMACY",
+  "SHELTER",
+  "COOLING_CENTER",
+]);
+
+/** Match the backend's population and facility counting rules for the visible state. */
+export function currentMetrics(nodes: InfrastructureNode[]) {
+  return {
+    affectedPopulation: nodes
+      .filter(
+        (node) => node.type === "NEIGHBORHOOD" && node.status !== "OPERATIONAL",
+      )
+      .reduce((sum, node) => sum + node.population_served, 0),
+    criticalFacilities: nodes.filter(
+      (node) =>
+        criticalFacilityTypes.has(node.type) &&
+        (node.status === "CRITICAL" || node.status === "FAILED"),
+    ).length,
+    failedInfrastructure: nodes.filter((node) => node.status === "FAILED")
+      .length,
+  };
 }

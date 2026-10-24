@@ -103,3 +103,10 @@ h2 { font-size: 1.15rem; letter-spacing: -.025em; margin-bottom: .4rem; }
 .event-list p b { color: #b5c9c4; font-weight: 600; text-transform: capitalize; }
 @media (max-width: 850px) { .side-panel { display: grid; grid-template-columns: 1fr 1fr; } .side-panel .legend-panel { display: flex; } .side-panel .type-section { border-top: 1px solid #31484b; padding-top: 1.2rem; } .side-panel .data-note { grid-column: auto; } }
 @media (max-width: 680px) { .simulation-controls { align-items: stretch; flex-direction: column; } .clock { justify-content: space-between; } .control-buttons { flex-wrap: wrap; } .control-buttons button { flex: 1; } .side-panel { display: flex; } .event-list { grid-template-columns: 1fr; } .event-heading > p { display: none; } }
+.metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+.metric-card { min-width: 0; padding: 1rem 1.2rem; border: 1px solid #31484b; background: #102024; display: flex; flex-direction: column; gap: .25rem; }
+.metric-card > span { color: #8fa6a4; font: 700 .61rem "Space Grotesk", sans-serif; letter-spacing: .14em; }
+.metric-card strong { font: 600 clamp(1.3rem, 2.2vw, 2rem) "Space Grotesk", sans-serif; line-height: 1.25; white-space: nowrap; }
+.metric-card small { color: #7e9895; font-size: .66rem; line-height: 1.35; }
+@media (max-width: 850px) { .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .metric-card { padding: .8rem; } .metric-card > span { font-size: .55rem; } .metric-card small { font-size: .6rem; } }

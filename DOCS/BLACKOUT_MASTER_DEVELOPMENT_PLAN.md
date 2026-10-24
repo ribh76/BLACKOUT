@@ -224,10 +224,10 @@ Turn the deterministic engine into the first unmistakable Blackout experience: p
 2. Render every infrastructure node at its latitude and longitude.-
 3. Use consistent status colors: green operational, yellow degraded, orange critical, and red failed.-
 4. Add infrastructure-type icons or visual shapes so the map is readable beyond color alone.-
-5. Add a node-detail panel showing type, status, criticality, population served, backup remaining, and current load.
-6. Add the `SIMULATE BLACKOUT` control and connect it to the scenario endpoint.
-7. Animate returned simulation events in timestamp order rather than changing every node instantly.
-8. Add simulation-clock, pause, resume, reset, loading, and error states.
+5. Add a node-detail panel showing type, status, criticality, population served, backup remaining, and current load.-
+6. Add the `SIMULATE BLACKOUT` control and connect it to the scenario endpoint.-
+7. Animate returned simulation events in timestamp order rather than changing every node instantly.-
+8. Add simulation-clock, pause, resume, reset, loading, and error states.-
 9. Add an event feed showing timestamp, node, transition, and cause.
 10. Add high-level metrics for people affected, critical facilities, failed infrastructure, and current system risk.
 11. Prevent duplicate runs, stale responses, and accidental state mixing when the user resets or reruns a scenario.
