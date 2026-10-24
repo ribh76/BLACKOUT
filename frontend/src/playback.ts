@@ -35,12 +35,20 @@ export type SimulationEvent = {
     | "STATUS_TRANSITION"
     | "BACKUP_ACTIVATED"
     | "BACKUP_DEACTIVATED"
-    | "BACKUP_DEPLETED";
+    | "BACKUP_DEPLETED"
+    | "INTERVENTION_SCHEDULED"
+    | "INTERVENTION_STARTED"
+    | "INTERVENTION_COMPLETED"
+    | "INTERVENTION_FAILED";
   node_id: string;
   old_status: NodeStatus;
   new_status: NodeStatus;
   cause: string;
   source_node_id?: string | null;
+  intervention_id?: string | null;
+  intervention_type?: string | null;
+  receiving_node_id?: string | null;
+  population_relocated?: number;
   dependency_causes?: DependencyCause[];
   explanation: string;
 };
@@ -150,14 +158,17 @@ export function applyPlaybackStep(
   step: PlaybackStep,
 ): InfrastructureNode[] {
   if (step.kind === "tick") return step.nodes;
-  if (step.event.kind !== "STATUS_TRANSITION" && !step.node_state) return nodes;
+  const changesStatus =
+    step.event.kind === "STATUS_TRANSITION" ||
+    step.event.kind === "INTERVENTION_COMPLETED";
+  if (!changesStatus && !step.node_state) return nodes;
   return nodes.map((node) =>
     node.id === step.event.node_id
       ? {
           ...node,
           ...step.node_state,
           status:
-            step.event.kind === "STATUS_TRANSITION"
+            changesStatus
               ? step.event.new_status
               : node.status,
         }

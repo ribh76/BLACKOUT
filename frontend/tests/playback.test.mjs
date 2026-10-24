@@ -136,6 +136,21 @@ test("rejects events that cannot be placed before the final snapshot", () => {
   );
 });
 
+test("plays intervention restoration at the recorded event", () => {
+  const step = {
+    kind: "event",
+    elapsed_minutes: 60,
+    event: {
+      ...event(60, "INTERVENTION_COMPLETED", "OPERATIONAL", "repair"),
+      old_status: "FAILED",
+      intervention_id: "repair-1",
+    },
+    node_state: { ...baseNode, status: "OPERATIONAL" },
+  };
+  const updated = applyPlaybackStep([{ ...baseNode, status: "FAILED" }], step);
+  assert.equal(updated[0].status, "OPERATIONAL");
+});
+
 test("current metrics follow the backend neighborhood and facility rules", () => {
   const nodes = [
     { ...baseNode, status: "FAILED", type: "SUBSTATION" },

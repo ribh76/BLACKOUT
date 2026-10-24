@@ -63,6 +63,30 @@ copied, and the same input produces the same timeline and final metrics.
 `SimulationEvent` records changes and causes, and `SimulationResult` holds the
 full timeline and final population, failure, and critical-facility counts.
 
+## Manual interventions
+
+An intervention's `start_time` must align to a 30-minute tick. The simulator
+reserves its resource costs in the cloned T+0 state and emits a scheduled event.
+Execution begins after its delay, then its effect and completion or failure
+event occur after its duration. Effects apply after that tick's cascade update,
+so other nodes respond on the following tick. Reserved resources remain
+committed for this run; no automatic crew or vehicle release is modeled yet.
+
+| Type | Eligible target | Resource cost | Delay + duration | Completion effect | Failure at completion |
+| --- | --- | --- | --- | --- | --- |
+| `DEPLOY_GENERATOR` | Nonfailed hospital, pharmacy, shelter, or cooling center with a power dependency | 1 generator, 120 gallons, 1 electrical crew, 1 vehicle, 2 personnel | 0 + 30 min | Adds two hours of load-equivalent backup reserve | Target failed or power dependency disappeared |
+| `SEND_FUEL` | Hospital, pharmacy, shelter, or cooling center with backup capacity | 100 gallons, 1 vehicle, 1 personnel | 0 + 30 min | Adds one hour of load-equivalent backup reserve | Backup system unavailable |
+| `REPAIR_SUBSTATION` | Impaired substation | 1 electrical crew, 1 vehicle, 2 personnel | 0 + 60 min | Sets status to operational and resets impairment timer | Already operational |
+| `RESTORE_INTERSECTION` | Impaired intersection, or an at-risk one scheduled for later | 1 traffic crew, 1 vehicle, 2 personnel | 0 + 30 min | Restores status and resets signal-outage timer | Already operational |
+| `RELOCATE_POPULATION` | Impaired or at-risk neighborhood with an operational receiving site with 100 free places | 2 vehicles, 4 personnel | 30 + 60 min | Moves up to 100 residents to a shelter or cooling center | Neighborhood recovered or receiving capacity unavailable |
+
+At-risk targets must have a directly impaired provider and a completion time
+after T+30. All actions must finish by T+120. Generator and fuel reserves use
+the target's current load as their synthetic one-hour equivalent; gallons are
+separate inventory units. A failed action keeps its reserved resources and
+records the reason. The relocation event records residents moved and the
+receiving node ID.
+
 ## Simulation API response
 
 `POST /api/scenarios/extreme-heat-grid-failure/simulate` starts from the fixed

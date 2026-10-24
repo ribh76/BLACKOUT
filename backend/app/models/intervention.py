@@ -25,6 +25,17 @@ class ExecutionStatus(StrEnum):
     CANCELLED = "CANCELLED"
 
 
+class ManualInterventionRequest(BaseModel):
+    """User inputs; costs and effects always come from the server catalog."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: str = Field(min_length=1, pattern=r"\S")
+    type: InterventionType = Field(strict=False)
+    target_node_id: str = Field(min_length=1, pattern=r"\S")
+    start_time: datetime = Field(strict=False)
+
+
 class Intervention(BaseModel):
     """One proposed action; costs are expressed in inventory units.
 
@@ -38,10 +49,12 @@ class Intervention(BaseModel):
     type: InterventionType
     target_node_id: str = Field(min_length=1, pattern=r"\S")
     start_time: datetime = Field(strict=False)
+    execution_delay_minutes: int = Field(ge=0)
     duration_minutes: int = Field(gt=0)
     prerequisites: list[str] = Field(default_factory=list)
     resource_costs: ResourceInventory
     expected_effects: list[str] = Field(min_length=1)
+    failure_conditions: list[str] = Field(min_length=1)
     execution_status: ExecutionStatus = ExecutionStatus.PLANNED
 
     @model_validator(mode="after")
@@ -52,4 +65,6 @@ class Intervention(BaseModel):
             raise ValueError("prerequisites cannot contain blank entries")
         if any(not item.strip() for item in self.expected_effects):
             raise ValueError("expected_effects cannot contain blank entries")
+        if any(not item.strip() for item in self.failure_conditions):
+            raise ValueError("failure_conditions cannot contain blank entries")
         return self

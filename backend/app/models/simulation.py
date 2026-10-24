@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.dependency import DependencyType
 from app.models.infrastructure import InfrastructureNode, NodeStatus
+from app.models.intervention import Intervention, InterventionType
 from app.models.risk import RiskRanking
 from app.models.scenario import CityState
 
@@ -16,6 +17,10 @@ class SimulationEventKind(StrEnum):
     BACKUP_ACTIVATED = "BACKUP_ACTIVATED"
     BACKUP_DEACTIVATED = "BACKUP_DEACTIVATED"
     BACKUP_DEPLETED = "BACKUP_DEPLETED"
+    INTERVENTION_SCHEDULED = "INTERVENTION_SCHEDULED"
+    INTERVENTION_STARTED = "INTERVENTION_STARTED"
+    INTERVENTION_COMPLETED = "INTERVENTION_COMPLETED"
+    INTERVENTION_FAILED = "INTERVENTION_FAILED"
 
 
 class DependencyCause(BaseModel):
@@ -41,9 +46,13 @@ class SimulationEvent(BaseModel):
     new_status: NodeStatus
     cause: str
     source_node_id: str | None = None
+    intervention_id: str | None = None
+    intervention_type: InterventionType | None = None
+    receiving_node_id: str | None = None
     dependency_causes: list[DependencyCause] = Field(default_factory=list)
     explanation: str
     population_exposed: int = Field(default=0, ge=0)
+    population_relocated: int = Field(default=0, ge=0)
 
 
 class SimulationState(BaseModel):
@@ -58,6 +67,7 @@ class SimulationState(BaseModel):
     backup_active: set[str]
     refrigeration_unpowered_minutes: dict[str, int]
     signal_unpowered_minutes: dict[str, int]
+    interventions: list[Intervention] = Field(default_factory=list)
 
 
 class SimulationMetrics(BaseModel):

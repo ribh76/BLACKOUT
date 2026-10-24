@@ -26,7 +26,14 @@ format for storage or comparison.
 Manual actions use the `Intervention` contract in
 `backend/app/models/intervention.py`: ID, type, target node ID, timezone-aware
 start time, positive duration in minutes, prerequisites, resource costs,
-expected effects, and execution status. `propose_intervention` uses the five
-initial action definitions to check target type, timing, current state, and
-inventory without consuming resources or changing a snapshot. Actual
-scheduling, resource reservation, and simulator effects are later steps.
+expected effects, failure conditions, and execution status. `propose_intervention`
+uses the five action definitions to check target type, timing, current state,
+and inventory without consuming resources or changing a snapshot.
+
+`POST /api/scenarios/{id}/interventions/validate` accepts an array of
+`{id, type, target_node_id, start_time}` requests and returns the canonical
+intervention plans. `POST /api/scenarios/{id}/interventions/simulate` accepts the
+same array and runs those plans on an independent started scenario snapshot.
+Both endpoints reject invalid actions with a descriptive HTTP 422 response.
+The stored scenario state is unchanged. The 120-minute simulator horizon is
+the latest possible completion time even though scenario metadata lasts longer.

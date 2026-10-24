@@ -75,7 +75,7 @@ def test_proposal_rejects_invalid_targets_and_limited_resources(snapshot):
             "hospital-downtown",
             start,
         )
-    with pytest.raises(InterventionError, match="already operational"):
+    with pytest.raises(InterventionError, match="operational"):
         propose_intervention(
             snapshot,
             "one",

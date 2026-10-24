@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from app.models.dependency import DependencyRequirement, DependencyType
 from app.models.infrastructure import InfrastructureNode, InfrastructureType, NodeStatus
+from app.models.intervention import ExecutionStatus, Intervention
 from app.models.scenario import CityState, ScenarioEvent
 from app.models.simulation import (
     DependencyCause,
@@ -14,6 +15,7 @@ from app.models.simulation import (
     SimulationState,
 )
 from app.services.dependency_queries import CRITICAL_FACILITY_TYPES
+from app.services.interventions import execute_intervention, validate_intervention_plan
 
 SIMULATION_TICKS = (30, 60, 90, 120)
 TICK_MINUTES = 30
@@ -476,11 +478,59 @@ def _final_metrics(state: SimulationState) -> SimulationMetrics:
     )
 
 
-def run_simulation(snapshot: CityState) -> SimulationResult:
+def _advance_interventions(state: SimulationState) -> list[SimulationEvent]:
+    """Advance scheduled actions only at simulator clock boundaries."""
+
+    events = []
+    for action in state.interventions:
+        begins = action.start_time + timedelta(minutes=action.execution_delay_minutes)
+        ends = begins + timedelta(minutes=action.duration_minutes)
+        target = next(
+            node for node in state.city_state.nodes if node.id == action.target_node_id
+        )
+        if (
+            action.execution_status is ExecutionStatus.SCHEDULED
+            and begins <= state.city_state.simulation_time
+        ):
+            action.execution_status = ExecutionStatus.IN_PROGRESS
+            events.append(
+                SimulationEvent(
+                    elapsed_minutes=state.elapsed_minutes,
+                    time=state.city_state.simulation_time,
+                    kind=SimulationEventKind.INTERVENTION_STARTED,
+                    node_id=target.id,
+                    old_status=target.status,
+                    new_status=target.status,
+                    cause=action.type.value,
+                    intervention_id=action.id,
+                    intervention_type=action.type,
+                    explanation=f"{action.type.value} started at {target.name}.",
+                )
+            )
+        if (
+            action.execution_status is ExecutionStatus.IN_PROGRESS
+            and ends <= state.city_state.simulation_time
+        ):
+            events.append(execute_intervention(state, action))
+    return events
+
+
+def run_simulation(
+    snapshot: CityState, interventions: list[Intervention] | None = None
+) -> SimulationResult:
     """Run the fixed T+30/60/90/120 clock from an initial scenario snapshot."""
 
+    plan = validate_intervention_plan(snapshot, interventions or [])
     state = initial_simulation_state(snapshot)
-    states = [state.model_copy(deep=True)]
+    state.interventions = plan
+    for action in plan:
+        action.execution_status = ExecutionStatus.SCHEDULED
+        for resource, cost in action.resource_costs.model_dump().items():
+            setattr(
+                state.city_state.resource_inventory,
+                resource,
+                getattr(state.city_state.resource_inventory, resource) - cost,
+            )
     initial_nodes = {node.id: node for node in snapshot.nodes}
     events = [
         SimulationEvent(
@@ -504,10 +554,31 @@ def run_simulation(snapshot: CityState) -> SimulationResult:
         )
         for event in snapshot.event_history
     ]
+    for action in plan:
+        target = next(
+            node for node in state.city_state.nodes if node.id == action.target_node_id
+        )
+        events.append(
+            SimulationEvent(
+                elapsed_minutes=0,
+                time=state.city_state.simulation_time,
+                kind=SimulationEventKind.INTERVENTION_SCHEDULED,
+                node_id=target.id,
+                old_status=target.status,
+                new_status=target.status,
+                cause=action.type.value,
+                intervention_id=action.id,
+                intervention_type=action.type,
+                explanation=f"{action.type.value} scheduled for {target.name}.",
+            )
+        )
+    events.extend(_advance_interventions(state))
+    states = [state.model_copy(deep=True)]
     for _ in SIMULATION_TICKS:
         state, tick_events = advance_tick(state)
-        states.append(state.model_copy(deep=True))
         events.extend(tick_events)
+        events.extend(_advance_interventions(state))
+        states.append(state.model_copy(deep=True))
     return SimulationResult(
         scenario_id=snapshot.scenario_id,
         tick_minutes=list(SIMULATION_TICKS),

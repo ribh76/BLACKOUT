@@ -143,3 +143,9 @@ class ScenarioStore:
         with self._lock:
             self._state = apply_initial_events(self._pristine_state, self._scenario)
             return get_scenario_state(self._state)
+
+    def initial_scenario_state(self) -> CityState:
+        """Return an independent started snapshot without changing stored state."""
+
+        with self._lock:
+            return apply_initial_events(self._pristine_state, self._scenario)

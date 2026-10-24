@@ -382,9 +382,9 @@ Represent actions that emergency responders can take and apply them to the simul
 
 ### Actions
 
-1. Define an `Intervention` model with ID, type, target node, start time, duration, prerequisites, resource costs, expected effects, and execution status.
-2. Implement initial intervention types: `DEPLOY_GENERATOR`, `SEND_FUEL`, `REPAIR_SUBSTATION`, `RESTORE_INTERSECTION`, and `RELOCATE_POPULATION`.
-3. Define a limited resource inventory with mobile generators, fuel, electrical crews, traffic crews, emergency vehicles, and any required personnel.
+1. Define an `Intervention` model with ID, type, target node, start time, duration, prerequisites, resource costs, expected effects, and execution status.-
+2. Implement initial intervention types: `DEPLOY_GENERATOR`, `SEND_FUEL`, `REPAIR_SUBSTATION`, `RESTORE_INTERSECTION`, and `RELOCATE_POPULATION`.-
+3. Define a limited resource inventory with mobile generators, fuel, electrical crews, traffic crews, emergency vehicles, and any required personnel.-
 4. Define resource costs, target eligibility, execution delay, duration, and failure conditions for each intervention type.
 5. Implement manual intervention validation so impossible actions are rejected with useful messages.
 6. Implement intervention application as a simulator event, not as a direct frontend mutation.
