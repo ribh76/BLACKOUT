@@ -52,9 +52,12 @@ def reset_scenario(
     """Create a pristine snapshot without mutating city, scenario, or graph data."""
 
     return CityState(
+        schema_version=1,
         scenario_id=scenario.id,
         city=city.city,
         city_schema_version=city.schema_version,
+        capacity_units=city.capacity_units.copy(),
+        data_notice=city.data_notice,
         simulation_time=scenario.start_time,
         duration_minutes=scenario.duration_minutes,
         temperature_f=scenario.temperature_f,
@@ -66,10 +69,13 @@ def reset_scenario(
     )
 
 
-def apply_initial_event(state: CityState, node_id: str, status: NodeStatus) -> None:
-    """Apply one declared T+0 event to a private state snapshot."""
+def apply_initial_event(
+    state: CityState, node_id: str, status: NodeStatus
+) -> CityState:
+    """Return a clone with one T+0 event, leaving the input untouched."""
 
-    node = next((node for node in state.nodes if node.id == node_id), None)
+    result = get_scenario_state(state)
+    node = next((node for node in result.nodes if node.id == node_id), None)
     if node is None:
         raise ScenarioDataError(f"Unknown initial event node {node_id!r}")
     if node.status is not NodeStatus.OPERATIONAL:
@@ -77,14 +83,30 @@ def apply_initial_event(state: CityState, node_id: str, status: NodeStatus) -> N
     if status not in (NodeStatus.FAILED, NodeStatus.DEGRADED):
         raise ScenarioDataError(f"Unsupported initial event status {status!r}")
     node.status = status
-    state.event_history.append(
+    result.event_history.append(
         ScenarioEvent(
-            sequence=len(state.event_history),
-            time=state.simulation_time,
+            sequence=len(result.event_history),
+            time=result.simulation_time,
             node_id=node_id,
             status=status,
         )
     )
+    return result
+
+
+def apply_initial_events(state: CityState, scenario: Scenario) -> CityState:
+    """Apply all declared failures, then degradations, in stable order."""
+
+    if state.scenario_id != scenario.id:
+        raise ScenarioDataError(
+            f"Snapshot scenario {state.scenario_id!r} does not match {scenario.id!r}"
+        )
+    result = get_scenario_state(state)
+    for node_id in scenario.initial_failures:
+        result = apply_initial_event(result, node_id, NodeStatus.FAILED)
+    for node_id in scenario.initial_degradations:
+        result = apply_initial_event(result, node_id, NodeStatus.DEGRADED)
+    return result
 
 
 def get_scenario_state(state: CityState) -> CityState:
@@ -99,11 +121,14 @@ class ScenarioStore:
     def __init__(
         self, scenario: Scenario, city: CityData, dependency_edges: list[DependencyEdge]
     ) -> None:
-        self.scenario = scenario
-        self.city = city
-        self.dependency_edges = dependency_edges
+        self._scenario = scenario.model_copy(deep=True)
         self._lock = RLock()
-        self._state = reset_scenario(scenario, city, dependency_edges)
+        self._pristine_state = reset_scenario(self._scenario, city, dependency_edges)
+        self._state = get_scenario_state(self._pristine_state)
+
+    @property
+    def scenario(self) -> Scenario:
+        return self._scenario.model_copy(deep=True)
 
     def get_scenario_state(self) -> CityState:
         with self._lock:
@@ -111,17 +136,10 @@ class ScenarioStore:
 
     def reset_scenario(self) -> CityState:
         with self._lock:
-            self._state = reset_scenario(
-                self.scenario, self.city, self.dependency_edges
-            )
+            self._state = get_scenario_state(self._pristine_state)
             return get_scenario_state(self._state)
 
     def start_scenario(self) -> CityState:
         with self._lock:
-            state = reset_scenario(self.scenario, self.city, self.dependency_edges)
-            for node_id in self.scenario.initial_failures:
-                apply_initial_event(state, node_id, NodeStatus.FAILED)
-            for node_id in self.scenario.initial_degradations:
-                apply_initial_event(state, node_id, NodeStatus.DEGRADED)
-            self._state = state
+            self._state = apply_initial_events(self._pristine_state, self._scenario)
             return get_scenario_state(self._state)

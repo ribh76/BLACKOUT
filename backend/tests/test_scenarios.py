@@ -10,12 +10,15 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.infrastructure import NodeStatus
+from app.models.scenario import CityState
 from app.services.city_data import load_city
 from app.services.dependency_data import load_dependencies
 from app.services.scenarios import (
     DEFAULT_SCENARIO_PATH,
     ScenarioDataError,
     ScenarioStore,
+    apply_initial_event,
+    apply_initial_events,
     load_scenario,
 )
 
@@ -41,6 +44,9 @@ def test_start_and_reset_replay_identical_snapshots_and_events() -> None:
     store = ScenarioStore(load_scenario(city), city, edges)
 
     pristine = store.get_scenario_state()
+    assert pristine.schema_version == 1
+    assert pristine.capacity_units == city.capacity_units
+    assert pristine.data_notice == city.data_notice
     first = store.start_scenario()
     first_json = first.model_dump(mode="json")
     reset = store.reset_scenario()
@@ -48,6 +54,7 @@ def test_start_and_reset_replay_identical_snapshots_and_events() -> None:
 
     assert reset == pristine
     assert second.model_dump(mode="json") == first_json
+    assert CityState.model_validate_json(first.model_dump_json()) == first
     assert first.simulation_time == pristine.simulation_time
     assert [
         (event.sequence, event.node_id, event.status, event.time)
@@ -75,6 +82,40 @@ def test_start_and_reset_replay_identical_snapshots_and_events() -> None:
     assert store.get_scenario_state() == second
     assert city.nodes[0].status is NodeStatus.OPERATIONAL
     assert edges[0].weight != 0.01
+
+
+def test_initial_event_application_and_reset_do_not_share_mutable_state() -> None:
+    city = load_city()
+    edges = load_dependencies(city).edges
+    scenario = load_scenario(city)
+    store = ScenarioStore(scenario, city, edges)
+    pristine = store.get_scenario_state()
+
+    failed = apply_initial_event(pristine, "substation-03", NodeStatus.FAILED)
+    started = apply_initial_events(pristine, scenario)
+    assert pristine.event_history == []
+    assert all(node.status is NodeStatus.OPERATIONAL for node in pristine.nodes)
+    assert [event.node_id for event in failed.event_history] == ["substation-03"]
+    assert [event.node_id for event in started.event_history] == [
+        "substation-03",
+        "substation-07",
+    ]
+
+    # Source objects can change after construction without changing reset/replay.
+    city.nodes[0].status = NodeStatus.CRITICAL
+    city.capacity_units["SUBSTATION"] = "changed"
+    edges[0].weight = 0.01
+    scenario.resource_inventory.mobile_generators = 0
+    assert store.reset_scenario() == pristine
+    assert store.start_scenario() == started
+
+    # Nested state must be independent in both directions.
+    reset = store.reset_scenario()
+    reset.nodes[0].coordinates.latitude = 37.2
+    reset.capacity_units["SUBSTATION"] = "changed again"
+    reset.dependency_edges[0].weight = 0.02
+    reset.event_history.append(failed.event_history[0])
+    assert store.get_scenario_state() == pristine
 
 
 def test_scenario_api_lists_starts_and_resets_same_disaster() -> None:

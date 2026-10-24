@@ -58,24 +58,46 @@ class ScenarioEvent(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     sequence: int = Field(ge=0)
-    time: datetime
+    time: datetime = Field(strict=False)
     node_id: str
     status: NodeStatus
 
+    @model_validator(mode="after")
+    def validate_time(self) -> "ScenarioEvent":
+        if self.time.tzinfo is None or self.time.utcoffset() is None:
+            raise ValueError("event time must include a timezone")
+        return self
+
 
 class CityState(BaseModel):
-    """A self-contained snapshot for reset, simulation, and comparison."""
+    """Versioned replay snapshot with full nodes, graph edges, and event order.
+
+    All timestamps are timezone-aware ISO 8601 values when serialized as JSON.
+    ``grid_load`` is a fraction; ``temperature_f`` is degrees Fahrenheit.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
+    schema_version: Literal[1]
     scenario_id: str
     city: str
-    city_schema_version: int
-    simulation_time: datetime
-    duration_minutes: int
-    temperature_f: float
-    grid_load: float
+    city_schema_version: Literal[1]
+    capacity_units: dict[str, str]
+    data_notice: str
+    simulation_time: datetime = Field(strict=False)
+    duration_minutes: int = Field(gt=0)
+    temperature_f: float = Field(allow_inf_nan=False)
+    grid_load: float = Field(ge=0, le=1, allow_inf_nan=False)
     nodes: list[InfrastructureNode]
     dependency_edges: list[DependencyEdge]
     resource_inventory: ResourceInventory
     event_history: list[ScenarioEvent]
+
+    @model_validator(mode="after")
+    def validate_time(self) -> "CityState":
+        if (
+            self.simulation_time.tzinfo is None
+            or self.simulation_time.utcoffset() is None
+        ):
+            raise ValueError("simulation_time must include a timezone")
+        return self
