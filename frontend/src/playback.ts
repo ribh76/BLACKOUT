@@ -18,6 +18,7 @@ export type InfrastructureNode = {
   criticality: number;
   population_served: number;
   backup_remaining: number;
+  backup_capacity: number;
   current_load: number;
 };
 export type InfrastructureSnapshot = {
@@ -39,8 +40,28 @@ export type SimulationEvent = {
   old_status: NodeStatus;
   new_status: NodeStatus;
   cause: string;
+  source_node_id?: string | null;
+  dependency_causes?: DependencyCause[];
   explanation: string;
 };
+export type DependencyCause = {
+  provider_id: string;
+  provider_status: NodeStatus;
+  dependency_type: "POWER" | "ACCESS" | "SUPPLY";
+  weight: number;
+  contribution: number;
+};
+
+export function recordedSources(event: SimulationEvent): string[] {
+  return [
+    ...new Set([
+      ...(event.dependency_causes ?? [])
+        .filter((cause) => cause.contribution > 0)
+        .map((cause) => cause.provider_id),
+      ...(event.source_node_id ? [event.source_node_id] : []),
+    ]),
+  ];
+}
 export type SimulationState = {
   elapsed_minutes: number;
   city_state: { nodes: InfrastructureNode[] };
@@ -75,10 +96,15 @@ export type RiskRanking = {
   nodes: NodeRisk[];
 };
 export type PlaybackStep =
-  | { kind: "event"; elapsed_minutes: number; event: SimulationEvent }
+  | {
+      kind: "event";
+      elapsed_minutes: number;
+      event: SimulationEvent;
+      node_state?: InfrastructureNode;
+    }
   | { kind: "tick"; elapsed_minutes: number; nodes: InfrastructureNode[] };
 
-/** Keep API order for events at the same tick; snapshot fields land after those events. */
+/** Keep API event order; event assets get same-tick values before the full snapshot. */
 export function buildPlaybackSteps(result: SimulationResult): PlaybackStep[] {
   const steps: PlaybackStep[] = [];
   const sortedEvents = result.events
@@ -101,6 +127,10 @@ export function buildPlaybackSteps(result: SimulationResult): PlaybackStep[] {
         kind: "event",
         elapsed_minutes: event.elapsed_minutes,
         event,
+        node_state:
+          state.elapsed_minutes === event.elapsed_minutes
+            ? state.city_state.nodes.find((node) => node.id === event.node_id)
+            : undefined,
       });
       eventIndex += 1;
     }
@@ -120,12 +150,62 @@ export function applyPlaybackStep(
   step: PlaybackStep,
 ): InfrastructureNode[] {
   if (step.kind === "tick") return step.nodes;
-  if (step.event.kind !== "STATUS_TRANSITION") return nodes;
+  if (step.event.kind !== "STATUS_TRANSITION" && !step.node_state) return nodes;
   return nodes.map((node) =>
     node.id === step.event.node_id
-      ? { ...node, status: step.event.new_status }
+      ? {
+          ...node,
+          ...step.node_state,
+          status:
+            step.event.kind === "STATUS_TRANSITION"
+              ? step.event.new_status
+              : node.status,
+        }
       : node,
   );
+}
+
+/** Follow recorded source IDs backward through visible status transitions. */
+export function traceCausalSequence(
+  events: SimulationEvent[],
+  nodeId: string | null,
+): SimulationEvent[] {
+  if (!nodeId) return [];
+  let index = -1;
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    if (
+      event.kind === "STATUS_TRANSITION" &&
+      event.node_id === nodeId &&
+      (event.new_status === "CRITICAL" || event.new_status === "FAILED")
+    ) {
+      index = i;
+      break;
+    }
+  }
+  if (index < 0) return [];
+
+  const visited = new Set<number>();
+  const pending = [index];
+  while (pending.length) {
+    const current = pending.pop()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    for (const sourceId of recordedSources(events[current])) {
+      for (let i = current - 1; i >= 0; i -= 1) {
+        const candidate = events[i];
+        if (
+          candidate.kind !== "STATUS_TRANSITION" ||
+          candidate.node_id !== sourceId ||
+          candidate.elapsed_minutes >= events[current].elapsed_minutes
+        )
+          continue;
+        if (candidate.new_status !== "OPERATIONAL") pending.push(i);
+        break;
+      }
+    }
+  }
+  return [...visited].sort((a, b) => a - b).map((i) => events[i]);
 }
 
 const criticalFacilityTypes = new Set<InfrastructureType>([

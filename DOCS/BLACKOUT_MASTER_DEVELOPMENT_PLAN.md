@@ -355,9 +355,9 @@ Make the causal chain visually understandable instead of forcing users to infer 
 1. Allow users to select a failed or critical asset from the map, event feed, or risk ranking.-
 2. Display immediate dependents and their relationship type, weight, and delay.-
 3. Display multi-hop downstream consequences as a compact dependency tree or graph.-
-4. Highlight affected nodes and paths on the map while dimming unrelated infrastructure.
-5. Show direct dependencies, indirect dependencies, population affected, and critical facilities affected.
-6. Show the event sequence that connects the initiating failure to the selected consequence.
+4. Highlight affected nodes and paths on the map while dimming unrelated infrastructure.-
+5. Show direct dependencies, indirect dependencies, population affected, and critical facilities affected.-
+6. Show the event sequence that connects the initiating failure to the selected consequence.-
 7. Add a clear explanation generated from structured simulator data, such as “Hospital A is critical because it lost Substation 03 power and has 2.1 hours of backup remaining.”
 8. Add a reset/clear-explorer action that returns the map to the city-wide view.
 9. Ensure the explorer handles isolated nodes, missing paths, long paths, and multiple causes.

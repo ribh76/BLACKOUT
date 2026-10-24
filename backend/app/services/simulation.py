@@ -6,6 +6,7 @@ from app.models.dependency import DependencyRequirement, DependencyType
 from app.models.infrastructure import InfrastructureNode, InfrastructureType, NodeStatus
 from app.models.scenario import CityState, ScenarioEvent
 from app.models.simulation import (
+    DependencyCause,
     SimulationEvent,
     SimulationEventKind,
     SimulationMetrics,
@@ -65,7 +66,7 @@ def _dependency_pressure(
     node_id: str,
     previous: SimulationState,
     backup_coverage: float,
-) -> tuple[float, float, float, str | None, str | None, bool]:
+) -> tuple[float, float, float, str | None, str | None, bool, list[DependencyCause]]:
     """Combine matured provider pressures; retain strongest source for attribution."""
 
     nodes = {node.id: node for node in previous.city_state.nodes}
@@ -76,6 +77,7 @@ def _dependency_pressure(
     source_id = None
     power_source_id = None
     power_outage = False
+    causes = []
     for edge in sorted(
         (
             edge
@@ -108,6 +110,16 @@ def _dependency_pressure(
         else:
             other_remaining *= 1.0 - contribution
         pressure_remaining *= 1.0 - contribution
+        if provider.status is not NodeStatus.OPERATIONAL:
+            causes.append(
+                DependencyCause(
+                    provider_id=provider.id,
+                    provider_status=provider.status,
+                    dependency_type=edge.dependency_type,
+                    weight=edge.weight,
+                    contribution=contribution,
+                )
+            )
         if contribution > strongest:
             strongest = contribution
             source_id = provider.id
@@ -118,6 +130,7 @@ def _dependency_pressure(
         source_id or power_source_id,
         power_source_id,
         power_outage,
+        causes,
     )
 
 
@@ -260,6 +273,7 @@ def advance_tick(
             source_id,
             power_source_id,
             power_outage,
+            dependency_causes,
         ) = _dependency_pressure(node_id, previous, backup_coverage)
         if not power_outage and node_id in previous.backup_active:
             next_state.backup_active.discard(node_id)
@@ -413,6 +427,9 @@ def advance_tick(
                 new_status=next_status,
                 cause=cause,
                 source_node_id=event_source_id,
+                dependency_causes=(
+                    dependency_causes if cause != "RECOVERY_DELAY_ELAPSED" else []
+                ),
                 explanation=_transition_explanation(
                     node,
                     next_status,

@@ -157,3 +157,13 @@ h2 { font-size: 1.15rem; letter-spacing: -.025em; margin-bottom: .4rem; }
 .cascade-impact { border-top: 1px solid #2c4547; padding-top: .7rem; margin: .8rem 0 0; color: #d8c4a8; font-size: .68rem; line-height: 1.4; }
 .event-asset-button { display: block; border: 0; padding: 0; color: #e9f0ed; background: none; font: 600 .78rem "Space Grotesk", sans-serif; text-align: left; cursor: pointer; }
 .event-asset-button:hover, .event-asset-button:focus-visible { color: #f3a277; text-decoration: underline; }
+.asset-icon-dimmed { opacity: .18; filter: grayscale(.75); box-shadow: none; }
+.asset-icon-affected { box-shadow: 0 0 0 2px #68bdb1, 0 0 14px #68bdb177; }
+.asset-icon-selected { opacity: 1; filter: none; box-shadow: 0 0 0 3px #e8f3ec, 0 0 16px var(--asset-color); }
+.cascade-title { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.cascade-title button { border: 0; padding: 0; color: #f3a277; background: transparent; font-size: .65rem; cursor: pointer; white-space: nowrap; }
+.cascade-title button:hover, .cascade-title button:focus-visible { text-decoration: underline; }
+.cascade-events ol { list-style: none; margin: 0; padding: 0; max-height: 230px; overflow-y: auto; }
+.cascade-events li strong { color: #f3c29e; line-height: 1.4; }
+.cascade-events li small { color: #b0c5bf; }
+.cascade-explanation { color: #dce9e1; font-size: .74rem; line-height: 1.55; border-left: 2px solid #f3a277; padding-left: .7rem; }

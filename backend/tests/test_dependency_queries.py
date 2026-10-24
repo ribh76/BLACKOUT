@@ -15,6 +15,7 @@ from app.services.dependency_queries import (
     get_dependents,
     get_downstream_impact,
     get_downstream_nodes,
+    get_downstream_tree,
     get_upstream_nodes,
     trace_dependency_path,
 )
@@ -158,6 +159,44 @@ def test_cycles_do_not_reinclude_source_or_repeat_nodes() -> None:
     assert (
         trace_dependency_path(graph, "substation-03", "hospital-downtown") is not None
     )
+
+
+def test_tree_handles_long_paths_isolation_and_multiple_routes() -> None:
+    city = load_city()
+    graph = build_dependency_graph(city)
+    ids = [node.id for node in city.nodes]
+
+    def connect(source, target):
+        add_dependency(
+            graph,
+            DependencyEdge(
+                provider_id=source,
+                dependent_id=target,
+                dependency_type="SUPPLY",
+                weight=0.8,
+                failure_delay_minutes=15,
+                restoration_requirement="INVENTORY_REPLENISHED",
+                requirement="CRITICAL",
+            ),
+        )
+
+    for source, target in zip(ids[:-2], ids[1:-1]):
+        connect(source, target)
+    tree = get_downstream_tree(graph, ids[0])
+    assert len(tree) == len(ids) - 2
+    assert tree[-1].depth == len(ids) - 2
+    assert get_downstream_tree(graph, ids[-1]) == []
+    assert trace_dependency_path(graph, ids[0], ids[-1]) is None
+
+    connect(ids[0], ids[2])
+    tree = get_downstream_tree(graph, ids[0])
+    assert len({item.node_id for item in tree}) == len(tree)
+    assert next(item for item in tree if item.node_id == ids[2]).depth == 1
+    assert {item.node_id for item in tree} == set(get_downstream_nodes(graph, ids[0]))
+    for item in tree:
+        path = trace_dependency_path(graph, ids[0], item.node_id)
+        assert item.depth == len(path.edges)
+        assert item.edge == path.edges[-1]
 
 
 def test_trace_rejects_missing_edge_metadata() -> None:

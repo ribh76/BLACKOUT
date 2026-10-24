@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.dependency import DependencyType
 from app.models.infrastructure import InfrastructureNode, NodeStatus
 from app.models.risk import RiskRanking
 from app.models.scenario import CityState
@@ -15,6 +16,16 @@ class SimulationEventKind(StrEnum):
     BACKUP_ACTIVATED = "BACKUP_ACTIVATED"
     BACKUP_DEACTIVATED = "BACKUP_DEACTIVATED"
     BACKUP_DEPLETED = "BACKUP_DEPLETED"
+
+
+class DependencyCause(BaseModel):
+    """Provider state and effective pressure at the recorded transition."""
+
+    provider_id: str
+    provider_status: NodeStatus
+    dependency_type: DependencyType
+    weight: float = Field(gt=0, le=1)
+    contribution: float = Field(ge=0, le=1)
 
 
 class SimulationEvent(BaseModel):
@@ -30,6 +41,7 @@ class SimulationEvent(BaseModel):
     new_status: NodeStatus
     cause: str
     source_node_id: str | None = None
+    dependency_causes: list[DependencyCause] = Field(default_factory=list)
     explanation: str
     population_exposed: int = Field(default=0, ge=0)
 

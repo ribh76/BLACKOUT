@@ -40,6 +40,7 @@ const node = (id: string, type = "SUBSTATION", status = "OPERATIONAL") => ({
   criticality: 0.9,
   population_served: id === "hub" ? 1000 : 1200,
   backup_remaining: 10,
+  backup_capacity: 10,
   current_load: 80,
 });
 const originalNodes = [node("hub"), node("east", "NEIGHBORHOOD")];
@@ -332,8 +333,7 @@ test("explores a failed asset from map, event feed, and risk ranking", async () 
     );
     assert.match(explorer.textContent ?? "", /1,200 residents/);
     assert.equal(
-      explorer.querySelectorAll(".cascade-tree > li > .cascade-branch > li")
-        .length,
+      explorer.querySelectorAll('.cascade-tree > li[data-depth="2"]').length,
       1,
     );
 
@@ -361,6 +361,155 @@ test("explores a failed asset from map, event feed, and risk ranking", async () 
     assert.equal(
       app.container.querySelectorAll(".asset-icon-selected").length,
       1,
+    );
+  } finally {
+    await app.cleanup();
+  }
+});
+
+test("dims unrelated map assets and shows the recorded cause chain", async (t) => {
+  const west = {
+    ...node("west", "WAREHOUSE"),
+    name: "West warehouse",
+    coordinates: { latitude: 37.38, longitude: -121.92 },
+  };
+  const city = { ...snapshot, count: 3, nodes: [...originalNodes, west] };
+  const run = {
+    ...result,
+    states: result.states.map((state) => ({
+      ...state,
+      city_state: {
+        nodes: [
+          ...state.city_state.nodes.map((item) =>
+            item.id === "east" && state.elapsed_minutes === 30
+              ? { ...item, status: "CRITICAL" }
+              : item,
+          ),
+          west,
+        ],
+      },
+    })),
+    events: [
+      { ...result.events[0], new_status: "CRITICAL", source_node_id: "hub" },
+      { ...result.events[1], source_node_id: null },
+    ],
+  };
+  const app = await mount(
+    async (input) =>
+      response(
+        String(input).endsWith("/simulate")
+          ? run
+          : String(input).endsWith("/risk")
+            ? riskRanking
+            : city,
+      ) as Response,
+  );
+  try {
+    await click(button(app.container, "SIMULATE BLACKOUT"));
+    for (let step = 0; step < 4; step += 1) {
+      await act(async () => {
+        await new Promise((done) => setTimeout(done, 650));
+      });
+    }
+    await click(
+      app.container.querySelector(
+        '.risk-row[aria-label="Highlight Grid hub on map"]',
+      ),
+    );
+    await settle();
+    assert.equal(
+      app.container.querySelectorAll(".asset-icon-dimmed").length,
+      1,
+    );
+    assert.equal(
+      app.container.querySelectorAll(".cascade-map-path-potential").length,
+      1,
+    );
+    assert.match(
+      app.container.querySelector(".cascade-panel")?.textContent ?? "",
+      /Currently impaired downstream: 1,200 residents/,
+    );
+
+    await click(
+      app.container.querySelector(
+        '.risk-row[aria-label="Highlight East neighborhood on map"]',
+      ),
+    );
+    await settle();
+    assert.equal(
+      app.container.querySelectorAll(".asset-icon-dimmed").length,
+      1,
+    );
+    assert.equal(
+      app.container.querySelectorAll(".cascade-map-path-recorded").length,
+      1,
+    );
+    const explorer = app.container.querySelector(".cascade-panel");
+    assert.match(explorer?.textContent ?? "", /Recorded event chain 2/);
+    assert.match(explorer?.textContent ?? "", /T\+0 · Grid hub became failed/);
+    assert.match(
+      explorer?.textContent ?? "",
+      /T\+30 · East neighborhood became critical/,
+    );
+    assert.match(
+      explorer?.textContent ?? "",
+      /Currently impaired downstream: 0 residents/,
+    );
+
+    const leaflet = await import("leaflet");
+    const fit = t.mock.method(leaflet.default.Map.prototype, "fitBounds");
+    await click(button(app.container, "Clear focus"));
+    assert.equal(fit.mock.callCount(), 1);
+    assert.equal(
+      app.container.querySelectorAll(".asset-icon-dimmed").length,
+      0,
+    );
+    assert.equal(
+      app.container.querySelectorAll(".cascade-map-path-recorded").length,
+      0,
+    );
+  } finally {
+    await app.cleanup();
+  }
+});
+
+test("restores initial failure evidence from the current scenario state", async () => {
+  const currentState = {
+    nodes: [node("hub", "SUBSTATION", "FAILED"), originalNodes[1]],
+    event_history: [
+      {
+        sequence: 0,
+        time: "2026-07-15T14:00:00-07:00",
+        node_id: "hub",
+        status: "FAILED",
+      },
+    ],
+  };
+  const app = await mount(
+    async (input) =>
+      response(
+        String(input).endsWith("/state")
+          ? currentState
+          : String(input).endsWith("/risk")
+            ? riskRanking
+            : snapshot,
+      ) as Response,
+  );
+  try {
+    await settle();
+    assert.match(
+      app.container.querySelector(".event-list")?.textContent ?? "",
+      /T\+0.*Grid hub/s,
+    );
+    await click(app.container.querySelector(".event-asset-button"));
+    await settle();
+    assert.match(
+      app.container.querySelector(".cascade-panel")?.textContent ?? "",
+      /Recorded event chain 1/,
+    );
+    assert.match(
+      app.container.querySelector(".cascade-panel")?.textContent ?? "",
+      /T\+0 · Grid hub became failed/,
     );
   } finally {
     await app.cleanup();

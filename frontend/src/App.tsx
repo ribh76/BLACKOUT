@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { CascadeExplorer } from "./CascadeExplorer";
+import type { CascadeResponse } from "./cascade";
 import {
   applyPlaybackStep,
   buildPlaybackSteps,
   currentMetrics,
+  traceCausalSequence,
+  recordedSources,
 } from "./playback";
 import type {
   InfrastructureNode,
@@ -65,10 +68,19 @@ const typeSymbols: Record<InfrastructureType, string> = {
 function symbol(type: InfrastructureType) {
   return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">${typeSymbols[type]}</svg>`;
 }
-function markerIcon(node: InfrastructureNode, selected: boolean) {
+type MapFocus = {
+  nodeIds: Set<string>;
+  paths: { from: string; to: string; recorded: boolean }[];
+};
+function markerIcon(
+  node: InfrastructureNode,
+  selected: boolean,
+  affected: boolean,
+  dimmed: boolean,
+) {
   return L.divIcon({
     className: "asset-icon-wrap",
-    html: `<span class="asset-icon${selected ? " asset-icon-selected" : ""}" style="--asset-color:${statusColors[node.status]}">${symbol(node.type)}</span>`,
+    html: `<span class="asset-icon${selected ? " asset-icon-selected" : ""}${affected ? " asset-icon-affected" : ""}${dimmed ? " asset-icon-dimmed" : ""}" style="--asset-color:${statusColors[node.status]}">${symbol(node.type)}</span>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
     popupAnchor: [0, -15],
@@ -78,12 +90,15 @@ function CityMap({
   nodes,
   selectedId,
   onSelect,
+  focus,
 }: {
   nodes: InfrastructureNode[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  focus: MapFocus | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   useEffect(() => {
     if (!containerRef.current) return;
@@ -94,6 +109,7 @@ function CityMap({
       maxZoom: 17,
       zoomControl: false,
     });
+    mapRef.current = map;
     L.control.zoom({ position: "bottomright" }).addTo(map);
     if (mapboxToken) {
       L.tileLayer(
@@ -125,25 +141,62 @@ function CityMap({
     return () => {
       cancelAnimationFrame(frame);
       map.remove();
+      mapRef.current = null;
       layerRef.current = null;
     };
   }, []);
   useEffect(() => {
+    if (selectedId === null) {
+      mapRef.current?.fitBounds(SAN_JOSE_BOUNDS, {
+        padding: [24, 24],
+        maxZoom: 12,
+        animate: false,
+      });
+    }
+  }, [selectedId]);
+  useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     layer.clearLayers();
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    for (const path of focus?.paths ?? []) {
+      const from = byId.get(path.from);
+      const to = byId.get(path.to);
+      if (!from || !to) continue;
+      L.polyline(
+        [
+          [from.coordinates.latitude, from.coordinates.longitude],
+          [to.coordinates.latitude, to.coordinates.longitude],
+        ],
+        {
+          color: path.recorded ? "#ffba79" : "#68bdb1",
+          weight: path.recorded ? 4 : 2,
+          opacity: path.recorded ? 0.95 : 0.68,
+          dashArray: path.recorded ? undefined : "5 6",
+          interactive: false,
+          className: path.recorded
+            ? "cascade-map-path-recorded"
+            : "cascade-map-path-potential",
+        },
+      ).addTo(layer);
+    }
     nodes.forEach((node) => {
       const marker = L.marker(
         [node.coordinates.latitude, node.coordinates.longitude],
         {
-          icon: markerIcon(node, selectedId === node.id),
+          icon: markerIcon(
+            node,
+            selectedId === node.id,
+            Boolean(focus?.nodeIds.has(node.id)),
+            Boolean(focus && !focus.nodeIds.has(node.id)),
+          ),
           title: `${node.name} — ${typeLabels[node.type]}, ${node.status.toLowerCase()}`,
         },
       );
       marker.on("click", () => onSelect(node.id));
       marker.addTo(layer);
     });
-  }, [nodes, selectedId, onSelect]);
+  }, [nodes, selectedId, onSelect, focus]);
   return (
     <div
       ref={containerRef}
@@ -156,6 +209,8 @@ export function App() {
   const [snapshot, setSnapshot] = useState<InfrastructureSnapshot | null>(null);
   const [nodes, setNodes] = useState<InfrastructureNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [cascade, setCascade] = useState<CascadeResponse | null>(null);
+  const [explorerActive, setExplorerActive] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [simulationError, setSimulationError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -209,17 +264,41 @@ export function App() {
           );
         const state = (await stateResponse.json()) as {
           nodes: InfrastructureNode[];
+          event_history?: {
+            sequence: number;
+            time: string;
+            node_id: string;
+            status: NodeStatus;
+          }[];
         };
         if (!Array.isArray(state.nodes))
           throw new Error("Invalid scenario state response");
-        return { data, currentNodes: state.nodes };
+        return { data, state };
       })
-      .then(({ data, currentNodes }) => {
+      .then(({ data, state }) => {
         if (!Array.isArray(data.nodes))
           throw new Error("Invalid infrastructure response");
         setSnapshot(data);
-        setNodes(currentNodes);
-        setSelectedId((current) => current ?? currentNodes[0]?.id ?? null);
+        setNodes(state.nodes);
+        setFeed(
+          (state.event_history ?? []).map((event): SimulationEvent => {
+            const name =
+              state.nodes.find((node) => node.id === event.node_id)?.name ??
+              event.node_id;
+            return {
+              elapsed_minutes: 0,
+              time: event.time,
+              kind: "STATUS_TRANSITION",
+              node_id: event.node_id,
+              old_status: "OPERATIONAL",
+              new_status: event.status,
+              cause: "INITIAL_SCENARIO_EVENT",
+              source_node_id: null,
+              explanation: `The scenario begins with ${name} ${event.status.toLowerCase()}.`,
+            };
+          }),
+        );
+        setSelectedId((current) => current ?? state.nodes[0]?.id ?? null);
         setLoadError(null);
       })
       .catch((cause: unknown) => {
@@ -282,6 +361,8 @@ export function App() {
     setStepIndex(0);
     setRiskRanking(null);
     setRiskRankings(null);
+    setExplorerActive(false);
+    setSelectedId(null);
     try {
       const response = await fetch(
         `${apiUrl}/api/scenarios/${SCENARIO_ID}/simulate`,
@@ -345,6 +426,8 @@ export function App() {
     setStepIndex(0);
     setRiskRanking(null);
     setRiskRankings(null);
+    setExplorerActive(false);
+    setSelectedId(null);
     try {
       const response = await fetch(
         `${apiUrl}/api/scenarios/${SCENARIO_ID}/reset`,
@@ -405,13 +488,53 @@ export function App() {
     }
   }, [feed.length, phase]);
 
-  const selectNode = useCallback((id: string) => setSelectedId(id), []);
+  const selectNode = useCallback((id: string) => {
+    setSelectedId(id);
+    setExplorerActive(true);
+  }, []);
+  const clearExplorer = useCallback(() => {
+    setSelectedId(null);
+    setExplorerActive(false);
+  }, []);
   const pausePlayback = () => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     timerRef.current = null;
     setPhase("paused");
   };
   const selectedNode = nodes.find((node) => node.id === selectedId) ?? null;
+  const causalEvents = traceCausalSequence(feed, selectedId);
+  const focus: MapFocus | null =
+    explorerActive && selectedId !== null && cascade?.node_id === selectedId
+      ? {
+          nodeIds: new Set([
+            selectedId,
+            ...cascade.downstream_tree.map((item) => item.node_id),
+            ...causalEvents.map((event) => event.node_id),
+          ]),
+          paths: [
+            ...cascade.downstream_tree.map((item) => ({
+              from: item.parent_id,
+              to: item.node_id,
+              recorded: false,
+            })),
+            ...causalEvents.flatMap((event) =>
+              recordedSources(event)
+                .filter((source) =>
+                  causalEvents.some(
+                    (prior) =>
+                      prior.node_id === source &&
+                      prior.elapsed_minutes < event.elapsed_minutes,
+                  ),
+                )
+                .map((source) => ({
+                  from: source,
+                  to: event.node_id,
+                  recorded: true,
+                })),
+            ),
+          ],
+        }
+      : null;
   const selectedRisk = riskRanking?.nodes.find(
     (node) => node.node_id === selectedId,
   );
@@ -634,6 +757,7 @@ export function App() {
             nodes={nodes}
             selectedId={selectedId}
             onSelect={selectNode}
+            focus={focus}
           />
           {!snapshot && (
             <div className="map-message" role={loadError ? "alert" : "status"}>
@@ -650,7 +774,11 @@ export function App() {
             </div>
           )}
           <div className="map-bottomline">
-            <span>SELECT A SYMBOL TO INSPECT AN ASSET</span>
+            <span>
+              {focus
+                ? "SOLID: RECORDED CAUSE · DASHED: POTENTIAL DEPENDENCY"
+                : "SELECT A SYMBOL TO INSPECT AN ASSET"}
+            </span>
             <span>SIMULATED LOCATIONS</span>
           </div>
         </div>
@@ -737,6 +865,10 @@ export function App() {
             nodes={nodes}
             onSelect={selectNode}
             apiUrl={apiUrl}
+            onCascadeChange={setCascade}
+            causalEvents={causalEvents}
+            onClear={clearExplorer}
+            events={feed}
           />
           <section className="legend-panel" aria-label="Map legend">
             <p className="eyebrow">READING THE MAP</p>

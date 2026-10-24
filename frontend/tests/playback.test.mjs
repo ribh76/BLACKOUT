@@ -15,9 +15,44 @@ const compiled = ts.transpileModule(source, {
     target: ts.ScriptTarget.ES2022,
   },
 }).outputText;
-const { applyPlaybackStep, buildPlaybackSteps, currentMetrics } = await import(
+const {
+  applyPlaybackStep,
+  buildPlaybackSteps,
+  currentMetrics,
+  traceCausalSequence,
+} = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
+
+test("traces recorded multi-hop causes without using later events", () => {
+  const transitions = [
+    {
+      ...event(0, "STATUS_TRANSITION", "FAILED", "initial outage"),
+      node_id: "grid",
+      source_node_id: null,
+    },
+    {
+      ...event(30, "STATUS_TRANSITION", "DEGRADED", "grid pressure"),
+      node_id: "road",
+      source_node_id: "grid",
+    },
+    {
+      ...event(60, "STATUS_TRANSITION", "CRITICAL", "access lost"),
+      node_id: "hospital",
+      source_node_id: "road",
+    },
+    {
+      ...event(90, "STATUS_TRANSITION", "FAILED", "later grid event"),
+      node_id: "grid",
+      source_node_id: null,
+    },
+  ];
+  assert.deepEqual(
+    traceCausalSequence(transitions, "hospital").map((item) => item.node_id),
+    ["grid", "road", "hospital"],
+  );
+  assert.deepEqual(traceCausalSequence(transitions, "missing"), []);
+});
 
 const baseNode = {
   id: "hub",
@@ -84,7 +119,7 @@ test("plays initial failure, later events, then tick snapshots in clock order", 
   assert.equal(nodes[0].status, "FAILED");
   nodes = applyPlaybackStep(nodes, steps[3]);
   assert.equal(nodes[0].status, "DEGRADED");
-  assert.equal(nodes[0].backup_remaining, 10);
+  assert.equal(nodes[0].backup_remaining, 4);
   nodes = applyPlaybackStep(nodes, steps[4]);
   assert.equal(nodes[0].backup_remaining, 4);
 });

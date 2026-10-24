@@ -76,6 +76,22 @@ open the Cascade Explorer. It shows direct providers and dependents with
 relationship type, weight, and delay, plus a nested downstream chain and
 potential exposure. The chain is based on the directed dependency graph and
 can be read from `GET /api/infrastructure/{node_id}/cascade`.
+When an asset is focused, the map brightens its reachable nodes and draws
+dashed potential dependency links. Solid links follow recorded simulator
+events. The Explorer also distinguishes currently impaired downstream residents
+and facilities from potential exposure, and lists the visible causal event
+sequence. Clear focus returns to the city-wide map.
+Explanations use recorded provider states and weights plus current backup
+reserve and demand. Backup duration is an equivalent reserve estimate at
+current load; limited backup coverage is reported separately. Multiple
+recorded contributors appear in the explanation and event chain.
+
+Run `npm test` in `frontend` for the UI and explanation checks. Run
+`npm run test:contract` there to compare rendered tree rows, statuses, backup
+labels, and impact totals against fresh backend API and simulator output.
+The contract check uses `.venv/bin/python` by default; set
+`BLACKOUT_TEST_PYTHON` to use another Python environment with backend
+dependencies installed.
 
 ## Contribution conventions
 

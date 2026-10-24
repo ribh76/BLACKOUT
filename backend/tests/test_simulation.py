@@ -30,6 +30,37 @@ def started_snapshot():
     return store.start_scenario()
 
 
+def test_transition_retains_all_matured_dependency_causes() -> None:
+    snapshot = started_snapshot()
+    snapshot.dependency_edges = [
+        edge.model_copy(update={"failure_delay_minutes": 0})
+        for edge in snapshot.dependency_edges
+        if edge.dependent_id == "hospital-downtown"
+        and edge.provider_id in {"substation-03", "warehouse-north"}
+    ]
+    warehouse = next(node for node in snapshot.nodes if node.id == "warehouse-north")
+    warehouse.status = NodeStatus.FAILED
+    _, events = advance_tick(initial_simulation_state(snapshot))
+    event = next(
+        event
+        for event in events
+        if event.node_id == "hospital-downtown"
+        and event.kind is SimulationEventKind.STATUS_TRANSITION
+    )
+    assert {cause.provider_id for cause in event.dependency_causes} == {
+        "substation-03",
+        "warehouse-north",
+    }
+    assert all(
+        cause.provider_status is NodeStatus.FAILED for cause in event.dependency_causes
+    )
+    assert all(cause.contribution > 0 for cause in event.dependency_causes)
+    assert {cause.dependency_type.value for cause in event.dependency_causes} == {
+        "POWER",
+        "SUPPLY",
+    }
+
+
 def one_edge(provider_id: str, dependent_id: str, delay: int = 0) -> DependencyEdge:
     city = load_city()
     edge = next(
