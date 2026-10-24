@@ -58,6 +58,14 @@ make frontend
 The backend health check is available at http://localhost:8000/api/health and
 the frontend at http://localhost:5173.
 
+The City view loads all infrastructure assets from the backend. It uses
+OpenStreetMap tiles by default. To use Mapbox dark tiles, set
+`VITE_MAPBOX_ACCESS_TOKEN` in `frontend/.env.local` before starting Vite.
+Select a map symbol to inspect its current condition, load, and backup.
+`SIMULATE BLACKOUT` retrieves the deterministic cascade and plays its events
+in order; Pause, Resume, and Reset control the local playback. The event feed
+shows each transition and its cause.
+
 ## Contribution conventions
 
 Use small branches named `codex/<short-description>` or

@@ -186,11 +186,11 @@ Model how an initial failure propagates through dependencies over discrete time.
 4. Implement the status progression `OPERATIONAL → DEGRADED → CRITICAL → FAILED`; do not collapse every outcome into a binary failure.-
 5. Apply dependency delays so a dependent can degrade immediately, become critical later, and fail only after a threshold is crossed.-
 6. Model infrastructure-specific behavior, including hospital backup power, pharmacy refrigeration, intersection signal loss, cooling-center capacity, and neighborhood population impact.-
-7. Record every state transition with timestamp, node ID, old status, new status, cause, source node, and human-readable explanation.
-8. Return a complete timeline, final node states, affected population, failed infrastructure count, critical-facility count, and system-risk placeholder.
-9. Ensure deterministic reproducibility for the MVP; use a seeded random generator only if stochastic behavior is later introduced.
-10. Write unit and integration tests for direct propagation, delayed failure, multi-hop propagation, reset behavior, and a complete known cascade.
-11. Add a backend endpoint to run a scenario and return either the complete timeline or a safe incremental event stream if the frontend needs animation data.
+7. Record every state transition with timestamp, node ID, old status, new status, cause, source node, and human-readable explanation.-
+8. Return a complete timeline, final node states, affected population, failed infrastructure count, critical-facility count, and system-risk placeholder.-
+9. Ensure deterministic reproducibility for the MVP; use a seeded random generator only if stochastic behavior is later introduced.-
+10. Write unit and integration tests for direct propagation, delayed failure, multi-hop propagation, reset behavior, and a complete known cascade.-
+11. Add a backend endpoint to run a scenario and return either the complete timeline or a safe incremental event stream if the frontend needs animation data.-
 
 ### Exit condition
 
@@ -220,10 +220,10 @@ Turn the deterministic engine into the first unmistakable Blackout experience: p
 
 ### Actions
 
-1. Add a geographic map using Leaflet or Mapbox with a stable San Jose viewport and a clear legend.
-2. Render every infrastructure node at its latitude and longitude.
-3. Use consistent status colors: green operational, yellow degraded, orange critical, and red failed.
-4. Add infrastructure-type icons or visual shapes so the map is readable beyond color alone.
+1. Add a geographic map using Leaflet or Mapbox with a stable San Jose viewport and a clear legend.-
+2. Render every infrastructure node at its latitude and longitude.-
+3. Use consistent status colors: green operational, yellow degraded, orange critical, and red failed.-
+4. Add infrastructure-type icons or visual shapes so the map is readable beyond color alone.-
 5. Add a node-detail panel showing type, status, criticality, population served, backup remaining, and current load.
 6. Add the `SIMULATE BLACKOUT` control and connect it to the scenario endpoint.
 7. Animate returned simulation events in timestamp order rather than changing every node instantly.

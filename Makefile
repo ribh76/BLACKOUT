@@ -11,6 +11,7 @@ dev:
 
 test:
 	cd backend && python3 -m pytest
+	cd frontend && npm test
 	cd frontend && npm run build
 
 lint:
