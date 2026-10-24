@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "id": "extreme-heat-grid-failure",
+  "name": "Extreme Heat + Grid Failure",
+  "description": "A 105°F heat emergency drives the grid to 97% load as the Downtown Grid Hub fails and the South Grid Hub degrades. Limited crews, generators, and fuel must be allocated before dependent services lose power.",
+  "start_time": "2026-07-15T14:00:00-07:00",
+  "duration_minutes": 240,
+  "temperature_f": 105.0,
+  "grid_load": 0.97,
+  "initial_failures": ["substation-03"],
+  "initial_degradations": ["substation-07"],
+  "resource_inventory": {
+    "mobile_generators": 3,
+    "fuel_gallons": 1200,
+    "electrical_crews": 2,
+    "traffic_crews": 2,
+    "emergency_vehicles": 6
+  }
+}

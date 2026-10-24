@@ -132,8 +132,8 @@ Represent why one failed asset can create consequences elsewhere in the city.
 6. Implement `get_dependencies`, `get_dependents`, `get_downstream_nodes`, and `get_upstream_nodes` services.-
 7. Implement path tracing that returns the exact dependency path between two nodes, including edge metadata.-
 8. Implement downstream impact counts, affected population totals, and affected critical-facility counts.-
-9. Add `GET /api/infrastructure/{node_id}/dependencies` and `GET /api/infrastructure/{node_id}/impact`.
-10. Add tests for direct dependencies, multi-hop traversal, directionality, missing nodes, cycles, and known expected impact totals.
+9. Add `GET /api/infrastructure/{node_id}/dependencies` and `GET /api/infrastructure/{node_id}/impact`.- 
+10. Add tests for direct dependencies, multi-hop traversal, directionality, missing nodes, cycles, and known expected impact totals.- 
 
 ### Exit condition
 
@@ -154,9 +154,9 @@ Introduce an external disaster scenario and guarantee that the same initial cond
 
 ### Actions
 
-1. Define a `Scenario` model with ID, name, description, start time, duration, temperature, grid load, initial failures, initial degradations, and resource inventory.
-2. Implement exactly one polished scenario first: **Extreme Heat + Grid Failure**.
-3. Set scenario parameters such as 105°F temperature, 97% grid load, Substation 03 failure, and Substation 07 degradation.
+1. Define a `Scenario` model with ID, name, description, start time, duration, temperature, grid load, initial failures, initial degradations, and resource inventory.-
+2. Implement exactly one polished scenario first: **Extreme Heat + Grid Failure**.-
+3. Set scenario parameters such as 105°F temperature, 97% grid load, Substation 03 failure, and Substation 07 degradation.-
 4. Define a city-state snapshot format that includes node states, graph-relevant attributes, resource inventory, simulation time, and event history.
 5. Implement deep cloning so a scenario can be run, reset, and compared without shared mutable state contaminating another run.
 6. Implement `load_scenario`, `reset_scenario`, `apply_initial_event`, and `get_scenario_state` services.
@@ -180,7 +180,7 @@ Model how an initial failure propagates through dependencies over discrete time.
 
 ### Actions
 
-1. Define a simulation clock with discrete ticks such as `T+00`, `T+15`, `T+30`, and `T+60` minutes.
+1. Define a simulation clock with discrete ticks such as `T+30`, `T+60`, `T+90`, and `T+120` minutes.
 2. Define a `SimulationState`, `SimulationEvent`, and `SimulationResult` model so state, transitions, and final metrics are separate concepts.
 3. Implement deterministic rules for dependency pressure, load stress, backup activation, backup depletion, recovery delay, and status transitions.
 4. Implement the status progression `OPERATIONAL → DEGRADED → CRITICAL → FAILED`; do not collapse every outcome into a binary failure.

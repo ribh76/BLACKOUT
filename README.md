@@ -9,10 +9,17 @@ verified simulator output; they will not invent infrastructure state.
 
 ## Current status
 
-The repository currently contains the Phase 0 foundation: a FastAPI backend,
-React/TypeScript frontend, environment configuration, health endpoint, and
-developer commands. The city data model and cascade engine will be added in
-dependency order from the [master development plan](DOCS/BLACKOUT_MASTER_DEVELOPMENT_PLAN.md).
+The repository contains the FastAPI and React foundation, a versioned simulated
+San Jose city and dependency graph, and the first reproducible disaster scenario.
+The cascade engine is next in the [master development plan](DOCS/BLACKOUT_MASTER_DEVELOPMENT_PLAN.md).
+
+The **Extreme Heat + Grid Failure** scenario starts at a fixed simulation time
+with 105°F heat, 97% grid load, Substation 03 failed, and Substation 07 degraded.
+Use `GET /api/scenarios` or `GET /api/scenarios/extreme-heat-grid-failure` to
+inspect its fixed inputs. `POST /api/scenarios/extreme-heat-grid-failure/start`
+returns the initial event snapshot; `POST /api/scenarios/extreme-heat-grid-failure/reset`
+returns the pristine city snapshot. Repeated starts return the same state and
+initial events.
 
 All infrastructure and outcomes are simulated for demonstration and software
 development. This project is not an operational emergency-management system.
