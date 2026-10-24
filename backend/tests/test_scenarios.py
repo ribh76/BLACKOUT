@@ -126,20 +126,27 @@ def test_scenario_api_lists_starts_and_resets_same_disaster() -> None:
         reset = client.post(f"/api/scenarios/{SCENARIO_ID}/reset")
         replay = client.post(f"/api/scenarios/{SCENARIO_ID}/start")
         missing = client.get("/api/scenarios/unknown")
+        missing_start = client.post("/api/scenarios/unknown/start")
+        missing_reset = client.post("/api/scenarios/unknown/reset")
 
     assert listed.status_code == detail.status_code == 200
     assert listed.json() == [detail.json()]
     assert started.status_code == reset.status_code == replay.status_code == 200
     assert started.json() == replay.json()
     assert reset.json()["event_history"] == []
-    assert missing.status_code == 404
+    assert (
+        missing.status_code
+        == missing_start.status_code
+        == missing_reset.status_code
+        == 404
+    )
 
 
 @pytest.mark.parametrize(
     ("change", "expected"),
     [
         (
-            lambda data: data.update(initial_failures=["unknown"]),
+            lambda data: data.update(initial_failures=["substation-03", "unknown"]),
             "unknown initial event node",
         ),
         (
@@ -166,4 +173,27 @@ def test_invalid_scenario_is_rejected(
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ScenarioDataError, match=expected):
+        load_scenario(load_city(), path)
+
+
+@pytest.mark.parametrize(
+    "resource",
+    [
+        "mobile_generators",
+        "fuel_gallons",
+        "electrical_crews",
+        "traffic_crews",
+        "emergency_vehicles",
+    ],
+)
+@pytest.mark.parametrize("invalid_quantity", [-1, "many"])
+def test_every_resource_quantity_must_be_a_nonnegative_number(
+    tmp_path: Path, resource: str, invalid_quantity: object
+) -> None:
+    payload = json.loads(DEFAULT_SCENARIO_PATH.read_text(encoding="utf-8"))
+    payload["resource_inventory"][resource] = invalid_quantity
+    path = tmp_path / "scenario.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ScenarioDataError, match=resource):
         load_scenario(load_city(), path)

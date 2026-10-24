@@ -157,13 +157,13 @@ Introduce an external disaster scenario and guarantee that the same initial cond
 1. Define a `Scenario` model with ID, name, description, start time, duration, temperature, grid load, initial failures, initial degradations, and resource inventory.-
 2. Implement exactly one polished scenario first: **Extreme Heat + Grid Failure**.-
 3. Set scenario parameters such as 105°F temperature, 97% grid load, Substation 03 failure, and Substation 07 degradation.-
-4. Define a city-state snapshot format that includes node states, graph-relevant attributes, resource inventory, simulation time, and event history.
-5. Implement deep cloning so a scenario can be run, reset, and compared without shared mutable state contaminating another run.
-6. Implement `load_scenario`, `reset_scenario`, `apply_initial_event`, and `get_scenario_state` services.
-7. Add `GET /api/scenarios` and `GET /api/scenarios/{scenario_id}`.
-8. Add `POST /api/scenarios/{scenario_id}/start` and `POST /api/scenarios/{scenario_id}/reset`.
-9. Validate that every initial failure references a real node and that scenario resource quantities are nonnegative.
-10. Write replay tests proving that two clean runs begin with identical state and identical initial events.
+4. Define a city-state snapshot format that includes node states, graph-relevant attributes, resource inventory, simulation time, and event history.-
+5. Implement deep cloning so a scenario can be run, reset, and compared without shared mutable state contaminating another run.-
+6. Implement `load_scenario`, `reset_scenario`, `apply_initial_event`, and `get_scenario_state` services.-
+7. Add `GET /api/scenarios` and `GET /api/scenarios/{scenario_id}`.-
+8. Add `POST /api/scenarios/{scenario_id}/start` and `POST /api/scenarios/{scenario_id}/reset`.-
+9. Validate that every initial failure references a real node and that scenario resource quantities are nonnegative.-
+10. Write replay tests proving that two clean runs begin with identical state and identical initial events.-
 
 ### Exit condition
 
