@@ -3,10 +3,12 @@
 from datetime import timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.main import app
 from app.models.dependency import DependencyEdge, DependencyRequirement
 from app.models.infrastructure import NodeStatus
-from app.models.simulation import SimulationEventKind
+from app.models.simulation import SimulationEventKind, SimulationResult
 from app.services.city_data import load_city
 from app.services.dependency_data import load_dependencies
 from app.services.scenarios import (
@@ -384,3 +386,82 @@ def test_advance_rejects_ticks_beyond_fixed_horizon() -> None:
         state, _ = advance_tick(state)
     with pytest.raises(ValueError, match="Unsupported simulation tick"):
         advance_tick(state)
+
+
+def test_known_cascade_returns_complete_timeline_and_final_metrics() -> None:
+    result = run_simulation(started_snapshot())
+
+    assert [state.elapsed_minutes for state in result.states] == [0, 30, 60, 90, 120]
+    assert [event.elapsed_minutes for event in result.events] == sorted(
+        event.elapsed_minutes for event in result.events
+    )
+    assert len(result.final_node_states) == 36
+    assert {node.id: node.status for node in result.final_node_states}[
+        "hospital-downtown"
+    ] is NodeStatus.FAILED
+    assert result.final_node_states == result.states[-1].city_state.nodes
+    assert result.final_metrics.affected_population == 47300
+    assert result.final_metrics.failed_infrastructure_count == 12
+    assert result.final_metrics.critical_facility_count == 7
+    assert result.final_metrics.system_risk_score is None
+
+    transitions = [
+        event
+        for event in result.events
+        if event.kind is SimulationEventKind.STATUS_TRANSITION
+    ]
+    assert transitions
+    assert all(
+        event.node_id and event.cause and event.explanation for event in transitions
+    )
+    assert all(event.old_status is not event.new_status for event in transitions)
+    assert all(
+        event.time
+        == result.states[event.elapsed_minutes // 30].city_state.simulation_time
+        for event in transitions
+    )
+    hospital = [
+        event
+        for event in transitions
+        if event.node_id == "hospital-downtown" and event.elapsed_minutes > 0
+    ]
+    assert [event.new_status for event in hospital] == [
+        NodeStatus.DEGRADED,
+        NodeStatus.CRITICAL,
+        NodeStatus.FAILED,
+    ]
+    assert all(event.source_node_id == "substation-03" for event in hospital)
+    assert "Downtown Grid Hub" in hospital[0].explanation
+
+    for before, after in zip(result.states, result.states[1:]):
+        before_status = {node.id: node.status for node in before.city_state.nodes}
+        changed_nodes = {
+            (node.id, before_status[node.id], node.status)
+            for node in after.city_state.nodes
+            if node.status is not before_status[node.id]
+        }
+        recorded = {
+            (event.node_id, event.old_status, event.new_status)
+            for event in transitions
+            if event.elapsed_minutes == after.elapsed_minutes
+        }
+        assert recorded == changed_nodes
+
+
+def test_simulate_endpoint_replays_identically_after_reset() -> None:
+    path = "/api/scenarios/extreme-heat-grid-failure"
+    with TestClient(app) as client:
+        first = client.post(f"{path}/simulate")
+        reset = client.post(f"{path}/reset")
+        second = client.post(f"{path}/simulate")
+        missing = client.post("/api/scenarios/unknown/simulate")
+
+    assert first.status_code == second.status_code == 200
+    assert first.json() == second.json()
+    result = SimulationResult.model_validate_json(first.text)
+    assert result.final_metrics.affected_population == 47300
+    assert len(result.events) > 2
+    assert reset.status_code == 200
+    assert reset.json()["event_history"] == []
+    assert all(node["status"] == "OPERATIONAL" for node in reset.json()["nodes"])
+    assert missing.status_code == 404

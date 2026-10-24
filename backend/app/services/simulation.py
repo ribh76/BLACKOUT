@@ -65,7 +65,7 @@ def _dependency_pressure(
     node_id: str,
     previous: SimulationState,
     backup_coverage: float,
-) -> tuple[float, float, float, str | None, bool]:
+) -> tuple[float, float, float, str | None, str | None, bool]:
     """Combine matured provider pressures; retain strongest source for attribution."""
 
     nodes = {node.id: node for node in previous.city_state.nodes}
@@ -74,6 +74,7 @@ def _dependency_pressure(
     other_remaining = 1.0
     strongest = 0.0
     source_id = None
+    power_source_id = None
     power_outage = False
     for edge in sorted(
         (
@@ -99,6 +100,8 @@ def _dependency_pressure(
             NodeStatus.FAILED,
         ):
             power_outage = True
+            if power_source_id is None:
+                power_source_id = provider.id
             contribution *= 1.0 - backup_coverage
         if edge.dependency_type is DependencyType.POWER:
             power_remaining *= 1.0 - contribution
@@ -112,9 +115,46 @@ def _dependency_pressure(
         1.0 - pressure_remaining,
         1.0 - power_remaining,
         1.0 - other_remaining,
-        source_id,
+        source_id or power_source_id,
+        power_source_id,
         power_outage,
     )
+
+
+def _transition_explanation(
+    node: InfrastructureNode,
+    new_status: NodeStatus,
+    cause: str,
+    source_name: str | None,
+    unpowered_minutes: int,
+) -> str:
+    """Explain a recorded transition from the same facts used by the rules."""
+
+    status = new_status.value.lower()
+    if cause == "REFRIGERATION_LOSS":
+        return (
+            f"{node.name} became {status} after {unpowered_minutes} minutes "
+            f"without refrigeration power from {source_name}."
+        )
+    if cause == "SIGNAL_LOSS":
+        return (
+            f"{node.name} signals became {status} after {unpowered_minutes} "
+            f"minutes without power from {source_name}."
+        )
+    if cause == "DEPENDENCY_PRESSURE":
+        return (
+            f"{node.name} became {status} as its provider {source_name} deteriorated."
+        )
+    if cause == "BACKUP_POWER":
+        return (
+            f"{node.name} became {status} while backup power covered "
+            f"the outage at {source_name}."
+        )
+    if cause == "HEAT_CAPACITY":
+        return f"{node.name} became {status} as heat raised demand above safe capacity."
+    if cause == "RECOVERY_DELAY_ELAPSED":
+        return f"{node.name} improved to {status} after stable conditions persisted."
+    return f"{node.name} became {status} as its operating load rose."
 
 
 def _outage_status(
@@ -213,9 +253,14 @@ def advance_tick(
             backup_coverage = min(1.0, current.backup_capacity / current.current_load)
             if current.type is not InfrastructureType.HOSPITAL:
                 backup_coverage *= current.backup_remaining / current.backup_capacity
-        pressure, power_pressure, other_pressure, source_id, power_outage = (
-            _dependency_pressure(node_id, previous, backup_coverage)
-        )
+        (
+            pressure,
+            power_pressure,
+            other_pressure,
+            source_id,
+            power_source_id,
+            power_outage,
+        ) = _dependency_pressure(node_id, previous, backup_coverage)
         if not power_outage and node_id in previous.backup_active:
             next_state.backup_active.discard(node_id)
             events.append(
@@ -242,7 +287,7 @@ def advance_tick(
                         old_status=current.status,
                         new_status=current.status,
                         cause="POWER_DEPENDENCY",
-                        source_node_id=source_id,
+                        source_node_id=power_source_id,
                         explanation=f"{node.name} activated backup power.",
                     )
                 )
@@ -260,7 +305,7 @@ def advance_tick(
                         old_status=current.status,
                         new_status=current.status,
                         cause="BACKUP_EXHAUSTED",
-                        source_node_id=source_id,
+                        source_node_id=power_source_id,
                         explanation=f"{node.name} exhausted its backup reserve.",
                     )
                 )
@@ -326,14 +371,38 @@ def advance_tick(
         if next_status is NodeStatus.OPERATIONAL:
             next_state.impaired_since_minutes.pop(node_id, None)
         cause = "DEPENDENCY_PRESSURE" if source_id else "LOAD_STRESS"
-        if current.type is InfrastructureType.PHARMACY and unprotected:
+        event_source_id = source_id
+        if (
+            current.type is InfrastructureType.HOSPITAL
+            and power_is_primary
+            and backup_coverage == 1
+        ):
+            cause = "BACKUP_POWER"
+            event_source_id = power_source_id
+        elif (
+            current.type is InfrastructureType.PHARMACY
+            and unprotected
+            and power_is_primary
+        ):
             cause = "REFRIGERATION_LOSS"
-        elif current.type is InfrastructureType.INTERSECTION and unprotected:
+            event_source_id = power_source_id
+        elif (
+            current.type is InfrastructureType.INTERSECTION
+            and unprotected
+            and power_is_primary
+        ):
             cause = "SIGNAL_LOSS"
+            event_source_id = power_source_id
         elif current.type is InfrastructureType.COOLING_CENTER and not source_id:
             cause = "HEAT_CAPACITY"
         if STATUS_ORDER.index(next_status) < STATUS_ORDER.index(current.status):
             cause = "RECOVERY_DELAY_ELAPSED"
+            event_source_id = None
+        unpowered_minutes = 0
+        if current.type is InfrastructureType.PHARMACY:
+            unpowered_minutes = next_state.refrigeration_unpowered_minutes[node_id]
+        elif current.type is InfrastructureType.INTERSECTION:
+            unpowered_minutes = next_state.signal_unpowered_minutes[node_id]
         events.append(
             SimulationEvent(
                 elapsed_minutes=elapsed,
@@ -343,10 +412,13 @@ def advance_tick(
                 old_status=current.status,
                 new_status=next_status,
                 cause=cause,
-                source_node_id=source_id,
-                explanation=(
-                    f"{node.name} changed from {current.status.value} "
-                    f"to {next_status.value}."
+                source_node_id=event_source_id,
+                explanation=_transition_explanation(
+                    node,
+                    next_status,
+                    cause,
+                    current_nodes[event_source_id].name if event_source_id else None,
+                    unpowered_minutes,
                 ),
                 population_exposed=(
                     node.population_served
@@ -403,7 +475,8 @@ def run_simulation(snapshot: CityState) -> SimulationResult:
             new_status=event.status,
             cause="INITIAL_SCENARIO_EVENT",
             explanation=(
-                f"{event.node_id} changed from OPERATIONAL to {event.status.value}."
+                f"The scenario begins with {initial_nodes[event.node_id].name} "
+                f"{event.status.value.lower()}."
             ),
             population_exposed=(
                 initial_nodes[event.node_id].population_served
@@ -423,5 +496,8 @@ def run_simulation(snapshot: CityState) -> SimulationResult:
         tick_minutes=list(SIMULATION_TICKS),
         states=states,
         events=events,
+        final_node_states=[
+            node.model_copy(deep=True) for node in state.city_state.nodes
+        ],
         final_metrics=_final_metrics(state),
     )

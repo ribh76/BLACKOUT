@@ -5,7 +5,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.models.scenario import CityState, Scenario
+from app.models.simulation import SimulationResult
 from app.services.scenarios import ScenarioStore
+from app.services.simulation import run_simulation
 
 router = APIRouter(prefix="/scenarios", tags=["scenarios"])
 
@@ -50,3 +52,13 @@ def reset_scenario(
 ) -> CityState:
     require_scenario(store, scenario_id)
     return store.reset_scenario()
+
+
+@router.post("/{scenario_id}/simulate", response_model=SimulationResult)
+def simulate_scenario(
+    scenario_id: str, store: Annotated[ScenarioStore, Depends(scenario_store)]
+) -> SimulationResult:
+    """Run the fixed timeline from a fresh copy of the scenario's T+0 state."""
+
+    require_scenario(store, scenario_id)
+    return run_simulation(store.start_scenario())

@@ -5,7 +5,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.infrastructure import NodeStatus
+from app.models.infrastructure import InfrastructureNode, NodeStatus
 from app.models.scenario import CityState
 
 
@@ -53,6 +53,12 @@ class SimulationMetrics(BaseModel):
     affected_population: int = Field(ge=0)
     failed_infrastructure_count: int = Field(ge=0)
     critical_facility_count: int = Field(ge=0)
+    system_risk_score: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description="Reserved for the later risk engine; no score is inferred here.",
+    )
 
 
 class SimulationResult(BaseModel):
@@ -62,4 +68,5 @@ class SimulationResult(BaseModel):
     tick_minutes: list[int]
     states: list[SimulationState]
     events: list[SimulationEvent]
+    final_node_states: list[InfrastructureNode]
     final_metrics: SimulationMetrics

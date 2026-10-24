@@ -62,3 +62,23 @@ copied, and the same input produces the same timeline and final metrics.
 `SimulationState` holds the city snapshot and exposure timers,
 `SimulationEvent` records changes and causes, and `SimulationResult` holds the
 full timeline and final population, failure, and critical-facility counts.
+
+## Simulation API response
+
+`POST /api/scenarios/extreme-heat-grid-failure/simulate` starts from the fixed
+T+0 scenario and returns one complete `SimulationResult`:
+
+- `states`: full city snapshots at T+0, T+30, T+60, T+90, and T+120.
+- `events`: an ordered timeline of initial status transitions, later status
+  transitions, and backup events. Each event includes the simulation timestamp,
+  elapsed minutes, node ID, old and new status, cause, source node ID when a
+  provider caused it, and a plain-language explanation. Source is `null` for
+  external initial events, local load, heat, and recovery.
+- `final_node_states`: the full nodes from the T+120 snapshot.
+- `final_metrics`: distinct affected neighborhood population, failed asset
+  count, critical or failed facility count, and `system_risk_score: null`.
+  The risk score remains unset until the risk engine provides it.
+
+The engine uses no randomness. A request reruns the same fixed initial
+conditions, so repeat calls and reset followed by a rerun produce identical
+JSON results.
