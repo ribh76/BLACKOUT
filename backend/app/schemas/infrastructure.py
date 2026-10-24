@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.dependency import DependencyEdge
+from app.models.dependency import CascadeTreeNode, DependencyEdge, DownstreamImpact
 from app.models.infrastructure import InfrastructureNode
 
 
@@ -32,3 +32,13 @@ class InfrastructureDependenciesResponse(BaseModel):
     downstream_nodes: list[str]
     dependency_edges: list[DependencyEdge]
     dependent_edges: list[DependencyEdge]
+
+
+class InfrastructureCascadeResponse(BaseModel):
+    """Immediate relationships and a unique, deterministic downstream tree."""
+
+    node_id: str
+    provider_edges: list[DependencyEdge]
+    dependent_edges: list[DependencyEdge]
+    downstream_tree: list[CascadeTreeNode]
+    impact: DownstreamImpact

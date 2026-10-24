@@ -71,6 +71,11 @@ shows backend risk rankings for the current playback state. Sort by risk,
 impact, or operational priority, then select an entry to highlight its map
 symbol and inspect its score drivers and downstream assets. Scores are
 simulated estimates based on synthetic city data.
+Select a critical or failed asset from the map, event feed, or risk ranking to
+open the Cascade Explorer. It shows direct providers and dependents with
+relationship type, weight, and delay, plus a nested downstream chain and
+potential exposure. The chain is based on the directed dependency graph and
+can be read from `GET /api/infrastructure/{node_id}/cascade`.
 
 ## Contribution conventions
 

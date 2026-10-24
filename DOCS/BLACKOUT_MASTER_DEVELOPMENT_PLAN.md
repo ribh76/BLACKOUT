@@ -328,12 +328,12 @@ Distinguish a failed asset from an asset whose failure matters most to the city.
 
    ```
 
-6. Derive failure probability from current state, scenario stress, dependency pressure, and remaining backup rather than inventing it in the UI.
-7. Normalize scores to 0–100 and document the weight choices in `docs/risk-model.md`.
-8. Produce a ranked risk list with score, confidence/quality indicators, primary drivers, and downstream impact.
-9. Add an API endpoint for the current risk ranking and node-level risk explanation.
-10. Add a `Critical Infrastructure` panel with sortable entries and click-to-highlight behavior on the map.
-11. Test score bounds, ranking stability, empty downstream sets, degraded versus failed states, and known high-risk nodes.
+6. Derive failure probability from current state, scenario stress, dependency pressure, and remaining backup rather than inventing it in the UI.-
+7. Normalize scores to 0–100 and document the weight choices in `docs/risk-model.md`.-
+8. Produce a ranked risk list with score, confidence/quality indicators, primary drivers, and downstream impact.-
+9. Add an API endpoint for the current risk ranking and node-level risk explanation.-
+10. Add a `Critical Infrastructure` panel with sortable entries and click-to-highlight behavior on the map.-
+11. Test score bounds, ranking stability, empty downstream sets, degraded versus failed states, and known high-risk nodes.-
 
 ### Exit condition
 
@@ -352,9 +352,9 @@ Make the causal chain visually understandable instead of forcing users to infer 
 
 ### Actions
 
-1. Allow users to select a failed or critical asset from the map, event feed, or risk ranking.
-2. Display immediate dependents and their relationship type, weight, and delay.
-3. Display multi-hop downstream consequences as a compact dependency tree or graph.
+1. Allow users to select a failed or critical asset from the map, event feed, or risk ranking.-
+2. Display immediate dependents and their relationship type, weight, and delay.-
+3. Display multi-hop downstream consequences as a compact dependency tree or graph.-
 4. Highlight affected nodes and paths on the map while dimming unrelated infrastructure.
 5. Show direct dependencies, indirect dependencies, population affected, and critical facilities affected.
 6. Show the event sequence that connects the initiating failure to the selected consequence.

@@ -135,3 +135,25 @@ h2 { font-size: 1.15rem; letter-spacing: -.025em; margin-bottom: .4rem; }
 .risk-explanation small { display: block; color: #e6b68d; font-size: .65rem; line-height: 1.4; margin-top: .65rem; }
 @media (max-width: 780px) { .risk-row { grid-template-columns: minmax(145px, 2fr) repeat(3, minmax(55px, .7fr)); } .risk-row > span:nth-child(5), .risk-quality { display: none; } }
 @media (max-width: 510px) { .risk-heading { align-items: start; flex-direction: column; } .risk-row { grid-template-columns: minmax(130px, 2fr) repeat(2, minmax(52px, .7fr)); } .risk-row > span:nth-child(4) { display: none; } }
+.cascade-panel { min-width: 0; padding: 1.3rem 1.2rem; border: 1px solid #31484b; background: #102024; }
+.cascade-panel .eyebrow { margin-bottom: .35rem; }
+.cascade-panel h2 { margin-bottom: .55rem; }
+.cascade-help, .cascade-error { color: #9bb3ae; font-size: .73rem; line-height: 1.5; margin: 0; }
+.cascade-error { color: #ffd3d5; }
+.cascade-source { color: #f3c29e; font-size: .74rem; margin: 0 0 .8rem; }
+.cascade-group { border-top: 1px solid #2c4547; padding-top: .75rem; margin-top: .75rem; }
+.cascade-group h3 { display: flex; justify-content: space-between; color: #d8e8e2; font: 600 .75rem "Space Grotesk", sans-serif; margin: 0 0 .5rem; }
+.cascade-group h3 span { color: #f3a277; }
+.cascade-group p { color: #8fa6a4; font-size: .7rem; margin: 0; }
+.cascade-group ul, .cascade-tree { list-style: none; padding: 0; margin: 0; max-height: 220px; overflow-y: auto; }
+.cascade-group li { padding: .45rem 0; border-top: 1px solid #23393c; font-size: .7rem; min-width: 0; }
+.cascade-group li strong { display: block; color: #e4eee9; font-weight: 600; }
+.cascade-group li small { display: block; color: #8fa9a3; font-size: .65rem; line-height: 1.35; margin-top: .16rem; }
+.cascade-tree li { position: relative; padding-left: .7rem; border-left: 2px solid #45676a; }
+.cascade-branch { list-style: none; margin: .35rem 0 0 .55rem; padding: 0; }
+.cascade-branch li { border-left-color: #567e7d; }
+.cascade-tree button { border: 0; padding: 0; color: #e8f0eb; background: none; font: 600 .7rem "Space Grotesk", sans-serif; text-align: left; cursor: pointer; }
+.cascade-tree button:hover, .cascade-tree button:focus-visible { color: #f3a277; text-decoration: underline; }
+.cascade-impact { border-top: 1px solid #2c4547; padding-top: .7rem; margin: .8rem 0 0; color: #d8c4a8; font-size: .68rem; line-height: 1.4; }
+.event-asset-button { display: block; border: 0; padding: 0; color: #e9f0ed; background: none; font: 600 .78rem "Space Grotesk", sans-serif; text-align: left; cursor: pointer; }
+.event-asset-button:hover, .event-asset-button:focus-visible { color: #f3a277; text-decoration: underline; }

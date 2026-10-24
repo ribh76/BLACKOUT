@@ -6,7 +6,12 @@ import networkx as nx
 from pydantic import ValidationError
 
 from app.models.city import CityData
-from app.models.dependency import DependencyEdge, DependencyPath, DownstreamImpact
+from app.models.dependency import (
+    CascadeTreeNode,
+    DependencyEdge,
+    DependencyPath,
+    DownstreamImpact,
+)
 from app.models.infrastructure import InfrastructureType
 from app.services.dependency_graph import DependencyGraphError
 
@@ -45,6 +50,31 @@ def get_downstream_nodes(graph: nx.DiGraph, node_id: str) -> list[str]:
 
     _require_node(graph, node_id)
     return sorted(nx.descendants(graph, node_id) - {node_id})
+
+
+def get_downstream_tree(graph: nx.DiGraph, source_id: str) -> list[CascadeTreeNode]:
+    """Choose one shortest path per dependent, breaking ties by node ID."""
+
+    _require_node(graph, source_id)
+    visited = {source_id}
+    queue = deque([(source_id, 0)])
+    result = []
+    while queue:
+        parent_id, depth = queue.popleft()
+        for node_id in sorted(graph.successors(parent_id)):
+            if node_id in visited:
+                continue
+            visited.add(node_id)
+            result.append(
+                CascadeTreeNode(
+                    node_id=node_id,
+                    parent_id=parent_id,
+                    depth=depth + 1,
+                    edge=get_dependency_edge(graph, parent_id, node_id),
+                )
+            )
+            queue.append((node_id, depth + 1))
+    return result
 
 
 def get_upstream_nodes(graph: nx.DiGraph, node_id: str) -> list[str]:

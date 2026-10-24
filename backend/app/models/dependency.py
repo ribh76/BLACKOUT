@@ -80,6 +80,15 @@ class DependencyPath(BaseModel):
     edges: list[DependencyEdge]
 
 
+class CascadeTreeNode(BaseModel):
+    """One shortest-path hop from the selected provider to a dependent."""
+
+    node_id: str
+    parent_id: str
+    depth: int = Field(ge=1)
+    edge: DependencyEdge
+
+
 class DownstreamImpact(BaseModel):
     """Potential exposure if the source asset degrades or fails.
 

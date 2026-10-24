@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import { CascadeExplorer } from "./CascadeExplorer";
 import {
   applyPlaybackStep,
   buildPlaybackSteps,
@@ -731,6 +732,12 @@ export function App() {
               </p>
             )}
           </section>
+          <CascadeExplorer
+            selectedNode={selectedNode}
+            nodes={nodes}
+            onSelect={selectNode}
+            apiUrl={apiUrl}
+          />
           <section className="legend-panel" aria-label="Map legend">
             <p className="eyebrow">READING THE MAP</p>
             <h2>System status</h2>
@@ -802,7 +809,20 @@ export function App() {
                     <small>{event.time.slice(11, 16)}</small>
                   </time>
                   <div>
-                    <strong>{node?.name ?? event.node_id}</strong>
+                    {event.kind === "STATUS_TRANSITION" &&
+                    (event.new_status === "CRITICAL" ||
+                      event.new_status === "FAILED") ? (
+                      <button
+                        type="button"
+                        className="event-asset-button"
+                        onClick={() => selectNode(event.node_id)}
+                        aria-label={`Explore cascade for ${node?.name ?? event.node_id}`}
+                      >
+                        {node?.name ?? event.node_id}
+                      </button>
+                    ) : (
+                      <strong>{node?.name ?? event.node_id}</strong>
+                    )}
                     <span>{transition}</span>
                     <p>
                       <b>{event.cause.replaceAll("_", " ").toLowerCase()}:</b>{" "}

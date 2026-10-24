@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "node --import tsx --test tests/*.test.mjs tests/*.test.tsx",
+    "test": "tsc -p tsconfig.test.json && node --import tsx --test tests/*.test.mjs tests/*.test.tsx",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -18,7 +18,9 @@
   },
   "devDependencies": {
     "@eslint/js": "latest",
+    "@types/jsdom": "^30.0.0",
     "@types/leaflet": "^1.9.14",
+    "@types/node": "^26.6.5",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@typescript-eslint/eslint-plugin": "latest",

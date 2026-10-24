@@ -73,6 +73,61 @@ const riskRanking = {
   count: 2,
   nodes: [riskNode("hub", 20, 80, 30), riskNode("east", 40, 50, 70)],
 };
+const cascade = {
+  node_id: "hub",
+  provider_edges: [
+    {
+      provider_id: "upstream-generator",
+      dependent_id: "hub",
+      dependency_type: "SUPPLY",
+      weight: 0.8,
+      failure_delay_minutes: 10,
+    },
+  ],
+  dependent_edges: [
+    {
+      provider_id: "hub",
+      dependent_id: "east",
+      dependency_type: "POWER",
+      weight: 0.9,
+      failure_delay_minutes: 15,
+    },
+  ],
+  downstream_tree: [
+    {
+      node_id: "east",
+      parent_id: "hub",
+      depth: 1,
+      edge: {
+        provider_id: "hub",
+        dependent_id: "east",
+        dependency_type: "POWER",
+        weight: 0.9,
+        failure_delay_minutes: 15,
+      },
+    },
+    {
+      node_id: "clinic",
+      parent_id: "east",
+      depth: 2,
+      edge: {
+        provider_id: "east",
+        dependent_id: "clinic",
+        dependency_type: "ACCESS",
+        weight: 0.7,
+        failure_delay_minutes: 30,
+      },
+    },
+  ],
+  impact: { affected_population: 1200, critical_facility_count: 0 },
+};
+const leafCascade = {
+  node_id: "east",
+  provider_edges: cascade.dependent_edges,
+  dependent_edges: [],
+  downstream_tree: [],
+  impact: { affected_population: 0, critical_facility_count: 0 },
+};
 const snapshot = {
   city: "San Jose",
   data_notice: "Synthetic data",
@@ -140,7 +195,14 @@ const deferred = () => {
   return { promise, resolve };
 };
 async function mount(fetchImpl: typeof fetch) {
-  globalThis.fetch = fetchImpl;
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/cascade")
+      ? Promise.resolve(
+          response(
+            String(input).includes("/east/cascade") ? leafCascade : cascade,
+          ) as Response,
+        )
+      : fetchImpl(input, init)) as typeof fetch;
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -232,6 +294,73 @@ test("sorts critical infrastructure and highlights a selected map asset", async 
     assert.match(
       app.container.querySelector(".detail-panel")?.textContent ?? "",
       /Primary drivers: criticality, human exposure/,
+    );
+  } finally {
+    await app.cleanup();
+  }
+});
+
+test("explores a failed asset from map, event feed, and risk ranking", async () => {
+  const app = await mount(
+    async (input) =>
+      response(
+        String(input).endsWith("/simulate")
+          ? result
+          : String(input).endsWith("/risk")
+            ? riskRanking
+            : snapshot,
+      ) as Response,
+  );
+  try {
+    await click(button(app.container, "SIMULATE BLACKOUT"));
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 700));
+    });
+    await click(app.container.querySelector('[title*="Grid hub"]'));
+    await settle();
+    const explorer = app.container.querySelector(".cascade-panel");
+    assert.ok(explorer);
+    assert.match(explorer.textContent ?? "", /Grid hub · failed/);
+    assert.match(explorer.textContent ?? "", /East neighborhood/);
+    assert.match(
+      explorer.textContent ?? "",
+      /power · 90% weight · 15 min delay/,
+    );
+    assert.match(
+      explorer.textContent ?? "",
+      /supply · 80% weight · 10 min delay/,
+    );
+    assert.match(explorer.textContent ?? "", /1,200 residents/);
+    assert.equal(
+      explorer.querySelectorAll(".cascade-tree > li > .cascade-branch > li")
+        .length,
+      1,
+    );
+
+    await click(
+      app.container.querySelector(
+        '.risk-row[aria-label="Highlight East neighborhood on map"]',
+      ),
+    );
+    assert.match(explorer.textContent ?? "", /No downstream assets/);
+    await click(
+      app.container.querySelector(
+        '.risk-row[aria-label="Highlight Grid hub on map"]',
+      ),
+    );
+    await settle();
+    assert.match(explorer.textContent ?? "", /Potential downstream chain 2/);
+    assert.match(
+      explorer.textContent ?? "",
+      /from East neighborhood · access · 70% weight · 30 min delay/,
+    );
+
+    await click(app.container.querySelector(".event-asset-button"));
+    await settle();
+    assert.match(explorer.textContent ?? "", /Grid hub · failed/);
+    assert.equal(
+      app.container.querySelectorAll(".asset-icon-selected").length,
+      1,
     );
   } finally {
     await app.cleanup();
