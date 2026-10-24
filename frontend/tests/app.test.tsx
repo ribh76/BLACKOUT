@@ -43,6 +43,36 @@ const node = (id: string, type = "SUBSTATION", status = "OPERATIONAL") => ({
   current_load: 80,
 });
 const originalNodes = [node("hub"), node("east", "NEIGHBORHOOD")];
+const riskNode = (
+  id: string,
+  risk: number,
+  impact: number,
+  priority: number,
+) => ({
+  node_id: id,
+  name: id === "hub" ? "Grid hub" : "East neighborhood",
+  type: id === "hub" ? "SUBSTATION" : "NEIGHBORHOOD",
+  status: "OPERATIONAL",
+  impact_score: impact,
+  failure_probability: risk / impact,
+  risk_score: risk,
+  operational_priority: priority,
+  time_to_failure_minutes: id === "hub" ? 30 : null,
+  direct_dependents: id === "hub" ? 1 : 0,
+  downstream_dependents: id === "hub" ? 1 : 0,
+  downstream_node_ids: id === "hub" ? ["east"] : [],
+  primary_drivers: ["criticality", "human exposure"],
+  quality_indicators: [
+    "synthetic_city_data",
+    "uncalibrated_failure_likelihood",
+  ],
+});
+const riskRanking = {
+  scenario_id: "extreme-heat-grid-failure",
+  simulation_time: "2026-07-15T14:00:00-07:00",
+  count: 2,
+  nodes: [riskNode("hub", 20, 80, 30), riskNode("east", 40, 50, 70)],
+};
 const snapshot = {
   city: "San Jose",
   data_notice: "Synthetic data",
@@ -89,6 +119,13 @@ const result = {
     event(0, "hub", "OPERATIONAL", "FAILED"),
   ],
   final_metrics: { system_risk_score: null },
+  risk_rankings: {
+    "0": riskRanking,
+    "30": {
+      ...riskRanking,
+      nodes: [riskNode("hub", 60, 80, 80), riskNode("east", 30, 50, 40)],
+    },
+  },
 };
 const response = (body: unknown, ok = true, status = 200) => ({
   ok,
@@ -140,7 +177,12 @@ function button(container: Element, name: string) {
 }
 
 test("renders API nodes on the map and shows selected details", async () => {
-  const app = await mount(async () => response(snapshot) as Response);
+  const app = await mount(
+    async (input) =>
+      response(
+        String(input).endsWith("/risk") ? riskRanking : snapshot,
+      ) as Response,
+  );
   try {
     assert.equal(
       app.container.querySelectorAll(".leaflet-marker-icon").length,
@@ -161,11 +203,50 @@ test("renders API nodes on the map and shows selected details", async () => {
   }
 });
 
+test("sorts critical infrastructure and highlights a selected map asset", async () => {
+  const app = await mount(
+    async (input) =>
+      response(
+        String(input).endsWith("/risk") ? riskRanking : snapshot,
+      ) as Response,
+  );
+  try {
+    await settle();
+    const panel = app.container.querySelector(".risk-panel");
+    assert.ok(panel);
+    const rows = () => [...panel.querySelectorAll(".risk-row")];
+    assert.match(rows()[0].textContent ?? "", /East neighborhood/);
+    const sort = panel.querySelector("select");
+    assert.ok(sort);
+    await act(async () => {
+      sort.value = "impact";
+      sort.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    });
+    assert.match(rows()[0].textContent ?? "", /Grid hub/);
+    await click(rows()[1]);
+    assert.match(rows()[1].className, /risk-row-selected/);
+    assert.equal(
+      app.container.querySelectorAll(".asset-icon-selected").length,
+      1,
+    );
+    assert.match(
+      app.container.querySelector(".detail-panel")?.textContent ?? "",
+      /Primary drivers: criticality, human exposure/,
+    );
+  } finally {
+    await app.cleanup();
+  }
+});
+
 test("shows events in time order and updates metrics with playback", async () => {
   const app = await mount(
     async (input) =>
       response(
-        String(input).endsWith("/simulate") ? result : snapshot,
+        String(input).endsWith("/simulate")
+          ? result
+          : String(input).endsWith("/risk")
+            ? riskRanking
+            : snapshot,
       ) as Response,
   );
   try {
@@ -188,7 +269,7 @@ test("shows events in time order and updates metrics with playback", async () =>
     const metrics =
       app.container.querySelector(".metrics-grid")?.textContent ?? "";
     assert.match(metrics, /1,200/);
-    assert.match(metrics, /Not scored/);
+    assert.match(metrics, /HIGHEST ASSET RISK60\.0 \/ 100/);
   } finally {
     await app.cleanup();
   }
@@ -199,6 +280,8 @@ test("reset ignores a late simulation response and prevents duplicate runs", asy
   let simulateCalls = 0;
   let resetCalls = 0;
   const app = await mount(async (input) => {
+    if (String(input).endsWith("/risk"))
+      return response(riskRanking) as Response;
     if (String(input).endsWith("/simulate")) {
       simulateCalls += 1;
       return pending.promise as Promise<Response>;
@@ -238,6 +321,8 @@ test("reset ignores a late simulation response and prevents duplicate runs", asy
 
 test("reset during playback clears queued events before a fresh run", async () => {
   const app = await mount(async (input) => {
+    if (String(input).endsWith("/risk"))
+      return response(riskRanking) as Response;
     if (String(input).endsWith("/simulate"))
       return response(result) as Response;
     if (String(input).endsWith("/reset"))
@@ -272,6 +357,8 @@ test("reset during playback clears queued events before a fresh run", async () =
 test("shows API failures and permits retry with a clean state", async () => {
   let failures = 0;
   const app = await mount(async (input) => {
+    if (String(input).endsWith("/risk"))
+      return response(riskRanking) as Response;
     if (String(input).endsWith("/simulate")) {
       failures += 1;
       return response({}, false, 503) as Response;
@@ -294,7 +381,11 @@ test("shows API failures and permits retry with a clean state", async () => {
 
 test("shows an infrastructure load error and recovers on retry", async () => {
   let loads = 0;
-  const app = await mount(async () => {
+  const app = await mount(async (input) => {
+    if (String(input).endsWith("/risk"))
+      return response(riskRanking) as Response;
+    if (String(input).endsWith("/state"))
+      return response({ nodes: originalNodes }) as Response;
     loads += 1;
     return loads === 1
       ? (response({}, false, 503) as Response)

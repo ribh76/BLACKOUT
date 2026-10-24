@@ -110,3 +110,28 @@ h2 { font-size: 1.15rem; letter-spacing: -.025em; margin-bottom: .4rem; }
 .metric-card small { color: #7e9895; font-size: .66rem; line-height: 1.35; }
 @media (max-width: 850px) { .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .metric-card { padding: .8rem; } .metric-card > span { font-size: .55rem; } .metric-card small { font-size: .6rem; } }
+.risk-panel { margin-bottom: 14px; padding: 1.2rem 1.4rem; border: 1px solid #31484b; background: #102024; }
+.risk-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: .9rem; }
+.risk-heading .eyebrow { margin-bottom: .35rem; }
+.risk-heading h2 { margin: 0 0 .25rem; }
+.risk-heading p:last-child { color: #91a9a9; font-size: .73rem; margin: 0; }
+.risk-heading label { display: flex; align-items: center; gap: .55rem; color: #adc2bd; font-size: .7rem; white-space: nowrap; }
+.risk-heading select { border: 1px solid #526b6d; color: #e9f0ed; background: #173035; padding: .45rem .6rem; font: inherit; }
+.risk-list { max-height: 310px; overflow-y: auto; border-top: 1px solid #31484b; }
+.risk-row { width: 100%; display: grid; grid-template-columns: minmax(190px, 2fr) repeat(4, minmax(68px, .7fr)) minmax(110px, 1fr); gap: .6rem; align-items: center; text-align: left; border: 0; border-bottom: 1px solid #263d40; padding: .65rem .55rem; color: #dce9e5; background: transparent; cursor: pointer; }
+.risk-row:hover, .risk-row:focus-visible { background: #1d373a; }
+.risk-row-selected { background: #223e40; box-shadow: inset 3px 0 #f5804d; }
+.risk-row > span:not(.risk-name):not(.risk-quality) { display: flex; flex-direction: column; gap: .12rem; }
+.risk-row small { color: #8ca7a2; font-size: .62rem; }
+.risk-row strong { font: 600 .76rem "Space Grotesk", sans-serif; }
+.risk-name { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
+.risk-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.risk-quality { color: #e6b68d; font-size: .64rem; }
+.risk-empty, .risk-error { color: #a7bbb6; font-size: .75rem; margin: .65rem 0 0; }
+.risk-error { color: #ffd3d5; }
+.risk-explanation { margin-top: 1rem; border-top: 1px solid #31484b; padding-top: .9rem; }
+.risk-explanation h3 { font: 600 .85rem "Space Grotesk", sans-serif; margin: 0 0 .5rem; }
+.risk-explanation p { color: #b8ccc7; font-size: .7rem; line-height: 1.45; margin: .3rem 0; overflow-wrap: anywhere; }
+.risk-explanation small { display: block; color: #e6b68d; font-size: .65rem; line-height: 1.4; margin-top: .65rem; }
+@media (max-width: 780px) { .risk-row { grid-template-columns: minmax(145px, 2fr) repeat(3, minmax(55px, .7fr)); } .risk-row > span:nth-child(5), .risk-quality { display: none; } }
+@media (max-width: 510px) { .risk-heading { align-items: start; flex-direction: column; } .risk-row { grid-template-columns: minmax(130px, 2fr) repeat(2, minmax(52px, .7fr)); } .risk-row > span:nth-child(4) { display: none; } }

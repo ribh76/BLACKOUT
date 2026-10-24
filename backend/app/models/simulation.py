@@ -6,6 +6,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.infrastructure import InfrastructureNode, NodeStatus
+from app.models.risk import RiskRanking
 from app.models.scenario import CityState
 
 
@@ -70,3 +71,4 @@ class SimulationResult(BaseModel):
     events: list[SimulationEvent]
     final_node_states: list[InfrastructureNode]
     final_metrics: SimulationMetrics
+    risk_rankings: dict[int, RiskRanking] = Field(default_factory=dict)

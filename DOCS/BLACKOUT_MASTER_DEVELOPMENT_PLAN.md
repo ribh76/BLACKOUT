@@ -256,7 +256,7 @@ Distinguish a failed asset from an asset whose failure matters most to the city.
 2. Normalize population served so large populations contribute meaningfully without overwhelming every other signal.-
 3. Incorporate direct and downstream dependency counts into impact scoring.-
 4. Incorporate vulnerability, backup availability, current load, and recovery time.-
-5. Calculate impact using the following 
+5. Calculate impact using the following -
 
    ```text
    HumanExposure_i = log(1 + PopulationServed_i) / log(1 + MaxPopulationServed)

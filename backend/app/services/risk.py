@@ -194,6 +194,15 @@ def rank_risk(snapshot: CityState) -> RiskRanking:
                         components.items(), key=lambda item: (-item[1], item[0])
                     )[:3]
                 ],
+                quality_indicators=[
+                    "synthetic_city_data",
+                    "uncalibrated_failure_likelihood",
+                    *(
+                        ["time_to_failure_beyond_120_minute_horizon"]
+                        if failure_minutes is None
+                        else []
+                    ),
+                ],
             )
         )
     ranking.sort(key=lambda item: (-item.risk_score, item.node_id))

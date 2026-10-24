@@ -10,7 +10,9 @@ import type {
   InfrastructureSnapshot,
   InfrastructureType,
   NodeStatus,
+  NodeRisk,
   PlaybackStep,
+  RiskRanking,
   SimulationEvent,
   SimulationResult,
 } from "./playback";
@@ -161,7 +163,17 @@ export function App() {
   const [feed, setFeed] = useState<SimulationEvent[]>([]);
   const [steps, setSteps] = useState<PlaybackStep[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
-  const [finalRiskScore, setFinalRiskScore] = useState<number | null>(null);
+  const [riskRanking, setRiskRanking] = useState<RiskRanking | null>(null);
+  const [riskRankings, setRiskRankings] = useState<Record<
+    string,
+    RiskRanking
+  > | null>(null);
+  const [riskError, setRiskError] = useState<string | null>(null);
+  const [riskRefreshKey, setRiskRefreshKey] = useState(0);
+  const [riskSort, setRiskSort] = useState<"risk" | "impact" | "priority">(
+    "risk",
+  );
+  const riskRequestRef = useRef<AbortController | null>(null);
   const generationRef = useRef(0);
   const requestRef = useRef<{
     kind: "simulate" | "reset";
@@ -174,6 +186,7 @@ export function App() {
     () => () => {
       generationRef.current += 1;
       requestRef.current?.controller.abort();
+      riskRequestRef.current?.abort();
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     },
     [],
@@ -182,16 +195,30 @@ export function App() {
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${apiUrl}/api/infrastructure`, { signal: controller.signal })
-      .then((response) => {
+      .then(async (response) => {
         if (!response.ok) throw new Error(`API returned ${response.status}`);
-        return response.json() as Promise<InfrastructureSnapshot>;
+        const data = (await response.json()) as InfrastructureSnapshot;
+        const stateResponse = await fetch(
+          `${apiUrl}/api/scenarios/${SCENARIO_ID}/state`,
+          { signal: controller.signal },
+        );
+        if (!stateResponse.ok)
+          throw new Error(
+            `Scenario state API returned ${stateResponse.status}`,
+          );
+        const state = (await stateResponse.json()) as {
+          nodes: InfrastructureNode[];
+        };
+        if (!Array.isArray(state.nodes))
+          throw new Error("Invalid scenario state response");
+        return { data, currentNodes: state.nodes };
       })
-      .then((data) => {
+      .then(({ data, currentNodes }) => {
         if (!Array.isArray(data.nodes))
           throw new Error("Invalid infrastructure response");
         setSnapshot(data);
-        setNodes(data.nodes);
-        setSelectedId((current) => current ?? data.nodes[0]?.id ?? null);
+        setNodes(currentNodes);
+        setSelectedId((current) => current ?? currentNodes[0]?.id ?? null);
         setLoadError(null);
       })
       .catch((cause: unknown) => {
@@ -202,6 +229,34 @@ export function App() {
       });
     return () => controller.abort();
   }, [retryKey]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const controller = new AbortController();
+    riskRequestRef.current = controller;
+    fetch(`${apiUrl}/api/scenarios/${SCENARIO_ID}/risk`, {
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok)
+          throw new Error(`Risk API returned ${response.status}`);
+        return response.json() as Promise<RiskRanking>;
+      })
+      .then((data) => {
+        if (!Array.isArray(data.nodes) || data.scenario_id !== SCENARIO_ID)
+          throw new Error("Invalid risk response");
+        if (controller.signal.aborted) return;
+        setRiskRanking(data);
+        setRiskError(null);
+      })
+      .catch((cause: unknown) => {
+        if (controller.signal.aborted) return;
+        setRiskError(
+          cause instanceof Error ? cause.message : "Unable to load risk",
+        );
+      });
+    return () => controller.abort();
+  }, [snapshot, riskRefreshKey]);
 
   const runSimulation = async () => {
     if (
@@ -214,6 +269,7 @@ export function App() {
     )
       return;
     const generation = ++generationRef.current;
+    riskRequestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = { kind: "simulate", controller };
     setSimulationError(null);
@@ -223,7 +279,8 @@ export function App() {
     setFeed([]);
     setSteps([]);
     setStepIndex(0);
-    setFinalRiskScore(null);
+    setRiskRanking(null);
+    setRiskRankings(null);
     try {
       const response = await fetch(
         `${apiUrl}/api/scenarios/${SCENARIO_ID}/simulate`,
@@ -245,7 +302,11 @@ export function App() {
       }
       if (generation !== generationRef.current) return;
       const playback = buildPlaybackSteps(result);
-      setFinalRiskScore(result.final_metrics?.system_risk_score ?? null);
+      if (!result.risk_rankings?.["0"]?.nodes)
+        throw new Error("Simulation response is missing risk rankings");
+      setRiskRankings(result.risk_rankings);
+      setRiskRanking(result.risk_rankings["0"]);
+      setRiskError(null);
       setSteps(playback);
       setPhase(playback.length ? "running" : "complete");
     } catch (cause: unknown) {
@@ -269,6 +330,7 @@ export function App() {
     )
       return;
     const generation = ++generationRef.current;
+    riskRequestRef.current?.abort();
     requestRef.current?.controller.abort();
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     const controller = new AbortController();
@@ -280,7 +342,8 @@ export function App() {
     setFeed([]);
     setSteps([]);
     setStepIndex(0);
-    setFinalRiskScore(null);
+    setRiskRanking(null);
+    setRiskRankings(null);
     try {
       const response = await fetch(
         `${apiUrl}/api/scenarios/${SCENARIO_ID}/reset`,
@@ -293,6 +356,7 @@ export function App() {
         throw new Error("Invalid reset response");
       if (generation !== generationRef.current) return;
       setNodes(result.nodes);
+      setRiskRefreshKey((key) => key + 1);
       setPhase("idle");
     } catch (cause: unknown) {
       if (generation !== generationRef.current || controller.signal.aborted)
@@ -322,6 +386,8 @@ export function App() {
         setFeed((current) => [...current, step.event]);
       }
       setNodes((current) => applyPlaybackStep(current, step));
+      if (step.kind === "tick")
+        setRiskRanking(riskRankings?.[String(step.elapsed_minutes)] ?? null);
       setElapsedMinutes(step.elapsed_minutes);
       setStepIndex((current) => current + 1);
     }, STEP_DELAY_MS);
@@ -330,7 +396,7 @@ export function App() {
       window.clearTimeout(timer);
       if (timerRef.current === timer) timerRef.current = null;
     };
-  }, [phase, stepIndex, steps]);
+  }, [phase, stepIndex, steps, riskRankings]);
 
   useEffect(() => {
     if (phase === "running" && feedListRef.current) {
@@ -345,6 +411,18 @@ export function App() {
     setPhase("paused");
   };
   const selectedNode = nodes.find((node) => node.id === selectedId) ?? null;
+  const selectedRisk = riskRanking?.nodes.find(
+    (node) => node.node_id === selectedId,
+  );
+  const sortedRisk = [...(riskRanking?.nodes ?? [])].sort((a, b) => {
+    const value = (item: NodeRisk) =>
+      riskSort === "impact"
+        ? item.impact_score
+        : riskSort === "priority"
+          ? item.operational_priority
+          : item.risk_score;
+    return value(b) - value(a) || a.node_id.localeCompare(b.node_id);
+  });
   const metrics = currentMetrics(nodes);
   const statuses = Object.keys(statusColors) as NodeStatus[];
   const types = Object.keys(typeLabels) as InfrastructureType[];
@@ -458,18 +536,89 @@ export function App() {
           <small>assets offline</small>
         </div>
         <div className="metric-card">
-          <span>CURRENT SYSTEM RISK</span>
+          <span>HIGHEST ASSET RISK</span>
           <strong>
-            {phase === "complete" && finalRiskScore !== null
-              ? `${Math.round(finalRiskScore * 100)}%`
+            {riskRanking?.nodes.length
+              ? `${Math.max(...riskRanking.nodes.map((node) => node.risk_score)).toFixed(1)} / 100`
               : "Not scored"}
           </strong>
-          <small>
-            {phase === "complete" && finalRiskScore !== null
-              ? "backend risk score"
-              : "risk engine pending"}
-          </small>
+          <small>highest backend simulated asset score</small>
         </div>
+      </section>
+      <section className="risk-panel" aria-label="Critical Infrastructure">
+        <div className="risk-heading">
+          <div>
+            <p className="eyebrow">RISK AND CRITICALITY</p>
+            <h2>Critical Infrastructure</h2>
+            <p>Simulated likelihood × city impact, scored by the backend.</p>
+          </div>
+          <label>
+            Sort by
+            <select
+              aria-label="Sort critical infrastructure"
+              value={riskSort}
+              onChange={(event) =>
+                setRiskSort(event.target.value as typeof riskSort)
+              }
+            >
+              <option value="risk">Risk score</option>
+              <option value="impact">City impact</option>
+              <option value="priority">Operational priority</option>
+            </select>
+          </label>
+        </div>
+        {riskError && (
+          <p className="risk-error" role="alert">
+            {riskError}
+          </p>
+        )}
+        {!riskRanking ? (
+          <p className="risk-empty">
+            {riskError ? "Ranking unavailable." : "Loading risk ranking…"}
+          </p>
+        ) : (
+          <div className="risk-list" role="list">
+            {sortedRisk.map((item) => (
+              <button
+                key={item.node_id}
+                type="button"
+                role="listitem"
+                className={`risk-row${selectedId === item.node_id ? " risk-row-selected" : ""}`}
+                onClick={() => selectNode(item.node_id)}
+                aria-label={`Highlight ${item.name} on map`}
+              >
+                <span className="risk-name">
+                  <strong>{item.name}</strong>
+                  <small>
+                    {typeLabels[item.type]} · {item.status.toLowerCase()}
+                  </small>
+                </span>
+                <span>
+                  <small>RISK</small>
+                  <strong>{item.risk_score.toFixed(1)}</strong>
+                </span>
+                <span>
+                  <small>IMPACT</small>
+                  <strong>{item.impact_score.toFixed(1)}</strong>
+                </span>
+                <span>
+                  <small>PRIORITY</small>
+                  <strong>{item.operational_priority.toFixed(1)}</strong>
+                </span>
+                <span>
+                  <small>DOWNSTREAM</small>
+                  <strong>{item.downstream_dependents}</strong>
+                </span>
+                <span
+                  className="risk-quality"
+                  title={item.quality_indicators.join(", ")}
+                >
+                  Synthetic · uncalibrated
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
       <section
         className="workspace"
@@ -545,6 +694,36 @@ export function App() {
                     </dd>
                   </div>
                 </dl>
+                {selectedRisk && (
+                  <div className="risk-explanation">
+                    <h3>Risk explanation</h3>
+                    <p>
+                      Risk {selectedRisk.risk_score.toFixed(1)} / 100 · Impact{" "}
+                      {selectedRisk.impact_score.toFixed(1)} / 100 · Simulated
+                      failure likelihood{" "}
+                      {Math.round(selectedRisk.failure_probability * 100)}%
+                    </p>
+                    <p>
+                      Primary drivers: {selectedRisk.primary_drivers.join(", ")}
+                      .
+                    </p>
+                    <p>
+                      {selectedRisk.downstream_dependents} downstream assets
+                      {selectedRisk.downstream_node_ids.length > 0 &&
+                        `: ${selectedRisk.downstream_node_ids.join(", ")}`}
+                    </p>
+                    <p>
+                      Time to critical or failed:{" "}
+                      {selectedRisk.time_to_failure_minutes === null
+                        ? "not observed within 120 minutes"
+                        : `${selectedRisk.time_to_failure_minutes} minutes`}
+                    </p>
+                    <small>
+                      Quality: synthetic city data; simulated likelihood is not
+                      empirically calibrated.
+                    </small>
+                  </div>
+                )}
               </>
             ) : (
               <p className="legend-help">

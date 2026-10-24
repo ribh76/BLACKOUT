@@ -50,6 +50,29 @@ export type SimulationResult = {
   states: SimulationState[];
   events: SimulationEvent[];
   final_metrics: { system_risk_score: number | null };
+  risk_rankings: Record<string, RiskRanking>;
+};
+export type NodeRisk = {
+  node_id: string;
+  name: string;
+  type: InfrastructureType;
+  status: NodeStatus;
+  impact_score: number;
+  failure_probability: number;
+  risk_score: number;
+  operational_priority: number;
+  time_to_failure_minutes: number | null;
+  direct_dependents: number;
+  downstream_dependents: number;
+  downstream_node_ids: string[];
+  primary_drivers: string[];
+  quality_indicators: string[];
+};
+export type RiskRanking = {
+  scenario_id: string;
+  simulation_time: string;
+  count: number;
+  nodes: NodeRisk[];
 };
 export type PlaybackStep =
   | { kind: "event"; elapsed_minutes: number; event: SimulationEvent }

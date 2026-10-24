@@ -26,6 +26,7 @@ class NodeRisk(BaseModel):
     downstream_dependents: int = Field(ge=0)
     downstream_node_ids: list[str]
     primary_drivers: list[str]
+    quality_indicators: list[str]
 
 
 class RiskRanking(BaseModel):

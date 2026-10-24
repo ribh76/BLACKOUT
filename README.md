@@ -66,8 +66,11 @@ Select a map symbol to inspect its current condition, load, and backup.
 in order; Pause, Resume, and Reset control the local playback. The event feed
 shows each transition and its cause.
 The live metrics count affected neighborhoods, critical facilities, and failed
-assets from the currently displayed nodes. System risk remains "Not scored"
-until the backend risk engine supplies a score.
+assets from the currently displayed nodes. The Critical Infrastructure panel
+shows backend risk rankings for the current playback state. Sort by risk,
+impact, or operational priority, then select an entry to highlight its map
+symbol and inspect its score drivers and downstream assets. Scores are
+simulated estimates based on synthetic city data.
 
 ## Contribution conventions
 

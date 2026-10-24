@@ -45,6 +45,15 @@ def test_type_weights_and_score_bounds_on_known_scenario() -> None:
         > scored(state, "warehouse-north").risk_score
     )
     assert ranking == rank_risk(state)
+    assert all(
+        "uncalibrated_failure_likelihood" in item.quality_indicators
+        for item in ranking.nodes
+    )
+    reordered = state.model_copy(deep=True)
+    reordered.nodes.reverse()
+    assert [item.node_id for item in rank_risk(reordered).nodes] == [
+        item.node_id for item in ranking.nodes
+    ]
 
 
 def test_population_has_diminishing_returns_and_no_single_signal_dominates() -> None:
@@ -169,10 +178,23 @@ def test_risk_api_uses_current_scenario_state_and_node_explanation() -> None:
             client.get(f"/api/scenarios/{scenario_id}/risk").text
         )
         client.post(f"/api/scenarios/{scenario_id}/start")
+        current_state = client.get(f"/api/scenarios/{scenario_id}/state")
         response = client.get(f"/api/scenarios/{scenario_id}/risk")
         detail = client.get(f"/api/scenarios/{scenario_id}/risk/substation-03")
+        simulated = client.post(f"/api/scenarios/{scenario_id}/simulate")
         missing = client.get(f"/api/scenarios/{scenario_id}/risk/not-a-node")
     assert response.status_code == detail.status_code == 200
+    assert current_state.status_code == 200
+    assert (
+        next(
+            item
+            for item in current_state.json()["nodes"]
+            if item["id"] == "substation-03"
+        )["status"]
+        == "FAILED"
+    )
+    assert simulated.status_code == 200
+    assert set(simulated.json()["risk_rankings"]) == {"0", "30", "60", "90", "120"}
     after = RiskRanking.model_validate_json(response.text)
     node = NodeRisk.model_validate_json(detail.text)
     assert node == next(item for item in after.nodes if item.node_id == node.node_id)

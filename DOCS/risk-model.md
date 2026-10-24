@@ -74,4 +74,8 @@ it is not an additional term in the specified impact or likelihood equations.
 The ranking and each node's components are available at
 `GET /api/scenarios/{scenario_id}/risk` and
 `GET /api/scenarios/{scenario_id}/risk/{node_id}`. Starting or resetting the
-scenario changes the snapshot being scored.
+scenario changes the snapshot being scored. The simulation API also returns
+`risk_rankings` keyed by elapsed minute for playback. Every node includes
+quality indicators for synthetic inputs and uncalibrated likelihood; nodes
+without an observed critical or failed state within 120 minutes also carry a
+forecast-horizon indicator.

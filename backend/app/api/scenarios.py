@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.models.scenario import CityState, Scenario
 from app.models.simulation import SimulationResult
+from app.services.risk import rank_risk
 from app.services.scenarios import ScenarioStore
 from app.services.simulation import run_simulation
 
@@ -38,6 +39,14 @@ def get_scenario(
     return store.scenario
 
 
+@router.get("/{scenario_id}/state", response_model=CityState)
+def get_scenario_state(
+    scenario_id: str, store: Annotated[ScenarioStore, Depends(scenario_store)]
+) -> CityState:
+    require_scenario(store, scenario_id)
+    return store.get_scenario_state()
+
+
 @router.post("/{scenario_id}/start", response_model=CityState)
 def start_scenario(
     scenario_id: str, store: Annotated[ScenarioStore, Depends(scenario_store)]
@@ -61,4 +70,8 @@ def simulate_scenario(
     """Run the fixed timeline from a fresh copy of the scenario's T+0 state."""
 
     require_scenario(store, scenario_id)
-    return run_simulation(store.start_scenario())
+    result = run_simulation(store.start_scenario())
+    result.risk_rankings = {
+        state.elapsed_minutes: rank_risk(state.city_state) for state in result.states
+    }
+    return result
