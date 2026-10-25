@@ -1,12 +1,18 @@
 """Discover, start, and reset reproducible disaster scenarios."""
 
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.models.intervention import Intervention, ManualInterventionRequest
+from app.models.intervention import (
+    Intervention,
+    ManualInterventionRequest,
+    NodeInterventionCandidates,
+)
 from app.models.scenario import CityState, Scenario
 from app.models.simulation import SimulationResult
+from app.services.intervention_candidates import candidate_interventions
 from app.services.interventions import (
     InterventionError,
     propose_intervention,
@@ -113,6 +119,7 @@ def validate_manual_interventions(
 
 
 @router.post("/{scenario_id}/interventions/simulate", response_model=SimulationResult)
+@router.post("/{scenario_id}/interventions/apply", response_model=SimulationResult)
 def simulate_manual_interventions(
     scenario_id: str,
     requests: list[ManualInterventionRequest],
@@ -126,3 +133,25 @@ def simulate_manual_interventions(
         tick.elapsed_minutes: rank_risk(tick.city_state) for tick in result.states
     }
     return result
+
+
+@router.get(
+    "/{scenario_id}/nodes/{node_id}/interventions",
+    response_model=NodeInterventionCandidates,
+)
+def node_intervention_candidates(
+    scenario_id: str,
+    node_id: str,
+    store: Annotated[ScenarioStore, Depends(scenario_store)],
+    start_time: datetime | None = None,
+) -> NodeInterventionCandidates:
+    require_scenario(store, scenario_id)
+    state = store.initial_scenario_state()
+    if not any(node.id == node_id for node in state.nodes):
+        raise HTTPException(
+            status_code=404, detail=f"Infrastructure node {node_id!r} not found"
+        )
+    try:
+        return candidate_interventions(state, node_id, start_time)
+    except InterventionError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

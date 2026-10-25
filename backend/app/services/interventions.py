@@ -3,11 +3,12 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from app.models.dependency import DependencyType
+from app.models.dependency import DependencyType, RestorationRequirement
 from app.models.infrastructure import InfrastructureType, NodeStatus
 from app.models.intervention import ExecutionStatus, Intervention, InterventionType
 from app.models.scenario import CityState, ResourceInventory, ScenarioEvent
 from app.models.simulation import SimulationEvent, SimulationEventKind, SimulationState
+from app.services.intervention_effects import describe_intervention_effects
 
 SIMULATION_HORIZON_MINUTES = 120
 RELOCATION_CAPACITY = 100
@@ -50,7 +51,7 @@ INTERVENTION_DEFINITIONS: dict[InterventionType, InterventionDefinition] = {
         ),
         ("Target has a power dependency and is not failed.",),
         ("Temporary power reduces power-dependency pressure while fuel lasts.",),
-        ("The target fails before installation or its power dependency disappears.",),
+        ("Target failed, has no load, or no longer has a power dependency.",),
     ),
     InterventionType.SEND_FUEL: InterventionDefinition(
         frozenset(
@@ -73,7 +74,7 @@ INTERVENTION_DEFINITIONS: dict[InterventionType, InterventionDefinition] = {
         ),
         ("Target has backup generation or a deployed mobile generator.",),
         ("Backup power duration increases after fuel delivery.",),
-        ("The target loses its backup system before delivery.",),
+        ("Target loses its backup system or has no load at delivery.",),
     ),
     InterventionType.REPAIR_SUBSTATION: InterventionDefinition(
         frozenset({InfrastructureType.SUBSTATION}),
@@ -104,7 +105,10 @@ INTERVENTION_DEFINITIONS: dict[InterventionType, InterventionDefinition] = {
             response_personnel=2,
         ),
         ("Intersection is degraded, critical, or failed.",),
-        ("Signals and access through the intersection are restored.",),
+        (
+            "Signals and access through the intersection are restored.",
+            "Connected routes reopen when providers are operational and load is safe.",
+        ),
         ("The intersection is already operational when the crew arrives.",),
     ),
     InterventionType.RELOCATE_POPULATION: InterventionDefinition(
@@ -121,7 +125,10 @@ INTERVENTION_DEFINITIONS: dict[InterventionType, InterventionDefinition] = {
         ),
         ("Neighborhood is affected or at risk; receiving site has 100 places.",),
         ("Up to 100 residents move to an available shelter or cooling center.",),
-        ("No receiving site has 100 free places at completion.",),
+        (
+            "Neighborhood recovered or no residents remain.",
+            "No receiving site has 100 free places at completion.",
+        ),
     ),
 }
 
@@ -292,15 +299,19 @@ def execute_intervention(
 ) -> SimulationEvent:
     """Apply a completed action to a simulator snapshot and record its outcome."""
 
+    before = state.model_copy(deep=True)
     snapshot = state.city_state
     target = next(node for node in snapshot.nodes if node.id == action.target_node_id)
     old_status = target.status
     failure = None
     receiving = None
     moved = 0
+    reopened_routes = []
     if action.type is InterventionType.DEPLOY_GENERATOR:
         if target.status is NodeStatus.FAILED:
             failure = "target failed before generator installation"
+        elif target.current_load == 0:
+            failure = "target has no active load to protect"
         elif not any(
             edge.dependent_id == target.id
             and edge.dependency_type is DependencyType.POWER
@@ -314,6 +325,8 @@ def execute_intervention(
     elif action.type is InterventionType.SEND_FUEL:
         if target.backup_capacity == 0:
             failure = "target has no backup system"
+        elif target.current_load == 0:
+            failure = "target has no active load to protect"
         else:
             reserve = target.current_load
             target.backup_capacity += reserve
@@ -333,6 +346,7 @@ def execute_intervention(
             state.impaired_since_minutes.pop(target.id, None)
             state.signal_unpowered_minutes[target.id] = 0
             state.healthy_minutes[target.id] = 0
+            reopened_routes = _reopen_connected_routes(state, target.id)
     else:
         sites = _receiving_sites(snapshot)
         if target.status is NodeStatus.OPERATIONAL:
@@ -349,15 +363,17 @@ def execute_intervention(
     action.execution_status = (
         ExecutionStatus.FAILED if failure else ExecutionStatus.COMPLETED
     )
-    if target.status is not old_status:
-        snapshot.event_history.append(
-            ScenarioEvent(
-                sequence=len(snapshot.event_history),
-                time=snapshot.simulation_time,
-                node_id=target.id,
-                status=target.status,
+    effects = describe_intervention_effects(before, state)
+    for effect in effects:
+        if effect.before.status is not effect.after.status:
+            snapshot.event_history.append(
+                ScenarioEvent(
+                    sequence=len(snapshot.event_history),
+                    time=snapshot.simulation_time,
+                    node_id=effect.node_id,
+                    status=effect.after.status,
+                )
             )
-        )
     return SimulationEvent(
         elapsed_minutes=state.elapsed_minutes,
         time=snapshot.simulation_time,
@@ -378,6 +394,46 @@ def execute_intervention(
             if failure
             else f"{action.type.value} completed at {target.name}"
             + (f"; moved {moved} residents to {receiving.name}." if receiving else ".")
+            + (
+                f" Reopened routes: {', '.join(reopened_routes)}."
+                if reopened_routes
+                else ""
+            )
         ),
         population_relocated=moved,
+        node_effects=effects,
     )
+
+
+def _reopen_connected_routes(state: SimulationState, intersection_id: str) -> list[str]:
+    """Reopen access routes only after all provider blockages are cleared."""
+
+    snapshot = state.city_state
+    nodes = {node.id: node for node in snapshot.nodes}
+    route_ids = {
+        edge.dependent_id
+        for edge in snapshot.dependency_edges
+        if edge.provider_id == intersection_id
+        and edge.dependency_type is DependencyType.ACCESS
+        and edge.restoration_requirement is RestorationRequirement.ROUTE_REOPENED
+        and nodes[edge.dependent_id].type is InfrastructureType.EMERGENCY_ROUTE
+    }
+    reopened = []
+    for route_id in sorted(route_ids):
+        route = nodes[route_id]
+        if (
+            route.status is NodeStatus.OPERATIONAL
+            or route.current_load > route.capacity
+        ):
+            continue
+        if any(
+            nodes[edge.provider_id].status is not NodeStatus.OPERATIONAL
+            for edge in snapshot.dependency_edges
+            if edge.dependent_id == route_id
+        ):
+            continue
+        route.status = NodeStatus.OPERATIONAL
+        state.impaired_since_minutes.pop(route_id, None)
+        state.healthy_minutes[route_id] = 0
+        reopened.append(route_id)
+    return reopened

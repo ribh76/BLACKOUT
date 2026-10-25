@@ -34,6 +34,13 @@ and inventory without consuming resources or changing a snapshot.
 `{id, type, target_node_id, start_time}` requests and returns the canonical
 intervention plans. `POST /api/scenarios/{id}/interventions/simulate` accepts the
 same array and runs those plans on an independent started scenario snapshot.
-Both endpoints reject invalid actions with a descriptive HTTP 422 response.
+`POST /api/scenarios/{id}/interventions/apply` exposes the same execution flow.
+These endpoints reject invalid actions with a descriptive HTTP 422 response.
 The stored scenario state is unchanged. The 120-minute simulator horizon is
 the latest possible completion time even though scenario metadata lasts longer.
+
+Candidate actions and their structured completion estimates are available from
+`GET /api/scenarios/{id}/nodes/{node_id}/interventions`. Estimates use the same
+effect handler as execution. Completion events include `node_effects` with full
+before/after nodes and numeric pressure, backup-duration, and exposure changes,
+including side effects on receiving facilities and reopened emergency routes.

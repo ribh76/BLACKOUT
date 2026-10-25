@@ -49,6 +49,11 @@ export type SimulationEvent = {
   intervention_type?: string | null;
   receiving_node_id?: string | null;
   population_relocated?: number;
+  node_effects?: {
+    node_id: string;
+    before: InfrastructureNode;
+    after: InfrastructureNode;
+  }[];
   dependency_causes?: DependencyCause[];
   explanation: string;
 };
@@ -158,6 +163,18 @@ export function applyPlaybackStep(
   step: PlaybackStep,
 ): InfrastructureNode[] {
   if (step.kind === "tick") return step.nodes;
+  if (
+    step.event.kind === "INTERVENTION_COMPLETED" &&
+    step.event.node_effects?.length
+  ) {
+    const effects = new Map(
+      step.event.node_effects.map((effect) => [effect.node_id, effect.after]),
+    );
+    return nodes.map((node) => {
+      const effect = effects.get(node.id);
+      return effect ? { ...node, ...effect } : node;
+    });
+  }
   const changesStatus =
     step.event.kind === "STATUS_TRANSITION" ||
     step.event.kind === "INTERVENTION_COMPLETED";
@@ -167,10 +184,7 @@ export function applyPlaybackStep(
       ? {
           ...node,
           ...step.node_state,
-          status:
-            changesStatus
-              ? step.event.new_status
-              : node.status,
+          status: changesStatus ? step.event.new_status : node.status,
         }
       : node,
   );

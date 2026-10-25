@@ -7,7 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.dependency import DependencyType
 from app.models.infrastructure import InfrastructureNode, NodeStatus
-from app.models.intervention import Intervention, InterventionType
+from app.models.intervention import (
+    Intervention,
+    InterventionNodeEffect,
+    InterventionType,
+)
 from app.models.risk import RiskRanking
 from app.models.scenario import CityState
 
@@ -53,6 +57,7 @@ class SimulationEvent(BaseModel):
     explanation: str
     population_exposed: int = Field(default=0, ge=0)
     population_relocated: int = Field(default=0, ge=0)
+    node_effects: list[InterventionNodeEffect] = Field(default_factory=list)
 
 
 class SimulationState(BaseModel):

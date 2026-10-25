@@ -151,6 +151,38 @@ test("plays intervention restoration at the recorded event", () => {
   assert.equal(updated[0].status, "OPERATIONAL");
 });
 
+test("plays every recorded node effect in an intervention event", () => {
+  const intersection = { ...baseNode, id: "intersection", status: "FAILED" };
+  const route = {
+    ...baseNode,
+    id: "route",
+    status: "FAILED",
+    type: "EMERGENCY_ROUTE",
+  };
+  const unchanged = { ...baseNode, id: "other" };
+  const step = {
+    kind: "event",
+    elapsed_minutes: 30,
+    event: {
+      ...event(30, "INTERVENTION_COMPLETED", "OPERATIONAL", "traffic restored"),
+      node_id: "intersection",
+      node_effects: [intersection, route].map((node) => ({
+        node_id: node.id,
+        before: node,
+        after: { ...node, status: "OPERATIONAL" },
+      })),
+    },
+  };
+  const nodes = [intersection, route, unchanged];
+  const updated = applyPlaybackStep(nodes, step);
+  assert.deepEqual(
+    updated.map((node) => node.status),
+    ["OPERATIONAL", "OPERATIONAL", "OPERATIONAL"],
+  );
+  assert.equal(updated[2], unchanged);
+  assert.equal(nodes[1].status, "FAILED");
+});
+
 test("current metrics follow the backend neighborhood and facility rules", () => {
   const nodes = [
     { ...baseNode, status: "FAILED", type: "SUBSTATION" },

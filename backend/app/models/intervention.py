@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.models.infrastructure import InfrastructureNode
 from app.models.scenario import ResourceInventory
 
 
@@ -68,3 +69,50 @@ class Intervention(BaseModel):
         if any(not item.strip() for item in self.failure_conditions):
             raise ValueError("failure_conditions cannot contain blank entries")
         return self
+
+
+class InterventionNodeEffect(BaseModel):
+    """Immediate node and next-tick pressure changes caused by one action."""
+
+    node_id: str
+    before: InfrastructureNode
+    after: InfrastructureNode
+    dependency_pressure_before: float = Field(ge=0, le=1)
+    dependency_pressure_after: float = Field(ge=0, le=1)
+    power_pressure_before: float = Field(ge=0, le=1)
+    power_pressure_after: float = Field(ge=0, le=1)
+    backup_duration_minutes_before: float | None = Field(ge=0)
+    backup_duration_minutes_after: float | None = Field(ge=0)
+    exposed_population_before: int = Field(ge=0)
+    exposed_population_after: int = Field(ge=0)
+    power_restored: bool
+    route_reopened: bool
+
+
+class InterventionEffectEstimate(BaseModel):
+    completion_time: datetime
+    execution_status: ExecutionStatus
+    explanation: str
+    node_effects: list[InterventionNodeEffect]
+    population_relocated: int = Field(ge=0)
+    receiving_node_id: str | None
+    assumptions: list[str]
+
+
+class InterventionCandidate(BaseModel):
+    intervention: Intervention
+    estimated_immediate_effects: InterventionEffectEstimate
+
+
+class UnavailableIntervention(BaseModel):
+    type: InterventionType
+    target_node_id: str
+    reason: str
+
+
+class NodeInterventionCandidates(BaseModel):
+    scenario_id: str
+    node_id: str
+    simulation_time: datetime
+    candidates: list[InterventionCandidate]
+    unavailable_actions: list[UnavailableIntervention]

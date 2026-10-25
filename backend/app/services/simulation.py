@@ -2,12 +2,10 @@
 
 from datetime import timedelta
 
-from app.models.dependency import DependencyRequirement, DependencyType
 from app.models.infrastructure import InfrastructureNode, InfrastructureType, NodeStatus
 from app.models.intervention import ExecutionStatus, Intervention
 from app.models.scenario import CityState, ScenarioEvent
 from app.models.simulation import (
-    DependencyCause,
     SimulationEvent,
     SimulationEventKind,
     SimulationMetrics,
@@ -16,21 +14,19 @@ from app.models.simulation import (
 )
 from app.services.dependency_queries import CRITICAL_FACILITY_TYPES
 from app.services.interventions import execute_intervention, validate_intervention_plan
+from app.services.simulation_pressure import (
+    TICK_MINUTES,
+    backup_power_coverage,
+    dependency_pressure,
+)
 
 SIMULATION_TICKS = (30, 60, 90, 120)
-TICK_MINUTES = 30
 STATUS_ORDER = (
     NodeStatus.OPERATIONAL,
     NodeStatus.DEGRADED,
     NodeStatus.CRITICAL,
     NodeStatus.FAILED,
 )
-STATUS_PRESSURE = {
-    NodeStatus.OPERATIONAL: 0.0,
-    NodeStatus.DEGRADED: 0.35,
-    NodeStatus.CRITICAL: 0.7,
-    NodeStatus.FAILED: 1.0,
-}
 
 
 def initial_simulation_state(snapshot: CityState) -> SimulationState:
@@ -62,78 +58,6 @@ def _load_stress(node: InfrastructureNode, snapshot: CityState) -> float:
     )
     heat = max(0.0, snapshot.temperature_f - 100.0) / 100.0 * node.vulnerability
     return local + grid + heat
-
-
-def _dependency_pressure(
-    node_id: str,
-    previous: SimulationState,
-    backup_coverage: float,
-) -> tuple[float, float, float, str | None, str | None, bool, list[DependencyCause]]:
-    """Combine matured provider pressures; retain strongest source for attribution."""
-
-    nodes = {node.id: node for node in previous.city_state.nodes}
-    pressure_remaining = 1.0
-    power_remaining = 1.0
-    other_remaining = 1.0
-    strongest = 0.0
-    source_id = None
-    power_source_id = None
-    power_outage = False
-    causes = []
-    for edge in sorted(
-        (
-            edge
-            for edge in previous.city_state.dependency_edges
-            if edge.dependent_id == node_id
-        ),
-        key=lambda edge: edge.provider_id,
-    ):
-        provider = nodes[edge.provider_id]
-        onset = previous.impaired_since_minutes.get(provider.id)
-        if (
-            onset is None
-            or previous.elapsed_minutes + TICK_MINUTES - onset
-            < edge.failure_delay_minutes
-        ):
-            continue
-        contribution = STATUS_PRESSURE[provider.status] * edge.weight
-        if edge.requirement is DependencyRequirement.OPTIONAL:
-            contribution *= 0.5
-        if edge.dependency_type is DependencyType.POWER and provider.status in (
-            NodeStatus.CRITICAL,
-            NodeStatus.FAILED,
-        ):
-            power_outage = True
-            if power_source_id is None:
-                power_source_id = provider.id
-            contribution *= 1.0 - backup_coverage
-        if edge.dependency_type is DependencyType.POWER:
-            power_remaining *= 1.0 - contribution
-        else:
-            other_remaining *= 1.0 - contribution
-        pressure_remaining *= 1.0 - contribution
-        if provider.status is not NodeStatus.OPERATIONAL:
-            causes.append(
-                DependencyCause(
-                    provider_id=provider.id,
-                    provider_status=provider.status,
-                    dependency_type=edge.dependency_type,
-                    weight=edge.weight,
-                    contribution=contribution,
-                )
-            )
-        if contribution > strongest:
-            strongest = contribution
-            source_id = provider.id
-    return (
-        1.0 - pressure_remaining,
-        1.0 - power_remaining,
-        1.0 - other_remaining,
-        source_id or power_source_id,
-        power_source_id,
-        power_outage,
-        causes,
-    )
 
 
 def _transition_explanation(
@@ -263,11 +187,7 @@ def advance_tick(
     for node_id in sorted(current_nodes):
         current = current_nodes[node_id]
         node = new_nodes[node_id]
-        backup_coverage = 0.0
-        if current.backup_remaining > 0 and current.current_load > 0:
-            backup_coverage = min(1.0, current.backup_capacity / current.current_load)
-            if current.type is not InfrastructureType.HOSPITAL:
-                backup_coverage *= current.backup_remaining / current.backup_capacity
+        backup_coverage = backup_power_coverage(current)
         (
             pressure,
             power_pressure,
@@ -276,7 +196,7 @@ def advance_tick(
             power_source_id,
             power_outage,
             dependency_causes,
-        ) = _dependency_pressure(node_id, previous, backup_coverage)
+        ) = dependency_pressure(node_id, previous, backup_coverage)
         if not power_outage and node_id in previous.backup_active:
             next_state.backup_active.discard(node_id)
             events.append(
