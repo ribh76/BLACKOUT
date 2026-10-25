@@ -410,8 +410,8 @@ Answer the operational question:
 
 ### Actions
 
-1. Define the optimization input: current city state, candidate interventions, resource inventory, planning horizon, and objective weights.
-2. Generate candidate interventions from currently failed, critical, or high-risk nodes rather than enumerating nonsensical actions.
+1. Define the optimization input: current city state, candidate interventions, resource inventory, planning horizon, and objective weights.-
+2. Generate candidate interventions from currently failed, critical, or high-risk nodes rather than enumerating nonsensical actions.-
 3. Calculate each candidate’s resource cost, expected risk reduction, population benefit, critical-facility benefit, and time to effect.
 4. Implement a simple deterministic heuristic baseline so the system remains usable if OR-Tools integration is delayed.
 5. Integrate Google OR-Tools with variables representing whether each candidate intervention is selected.

@@ -96,7 +96,9 @@ dependencies installed.
 Resource optimization input and state-driven candidate generation are available
 through `POST /api/scenarios/{scenario_id}/optimization/input`. See the
 [optimization input contract](docs/optimization-input.md) for options and eligibility
-rules. This prepares candidate alternatives for the next allocation phase.
+rules. `POST /api/scenarios/{scenario_id}/optimization/candidates` returns
+simulated benefit estimates; `POST /api/scenarios/{scenario_id}/optimization/plan`
+selects actions using OR-Tools CP-SAT or the deterministic heuristic fallback.
 
 ## Contribution conventions
 

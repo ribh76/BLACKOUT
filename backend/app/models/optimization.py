@@ -1,6 +1,7 @@
 """Reproducible inputs for resource allocation; no selection is implied."""
 
 from datetime import timedelta
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -99,3 +100,76 @@ class OptimizationInput(BaseModel):
             ):
                 raise ValueError("each candidate must be independently affordable")
         return self
+
+
+class OptimizationPlanRequest(OptimizationInputRequest):
+    method: Literal["auto", "heuristic", "ortools"] = "auto"
+
+
+class OptimizationOutcome(BaseModel):
+    """Horizon-end metrics; system risk is the sum of existing 0–100 node scores."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    system_risk: float = Field(ge=0, allow_inf_nan=False)
+    affected_population: int = Field(ge=0)
+    critical_facilities_at_risk: int = Field(ge=0)
+
+
+class OptimizationBenefit(BaseModel):
+    """Signed baseline-minus-intervention differences; negative means harm."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    expected_risk_reduction: float = Field(allow_inf_nan=False)
+    population_benefit: int
+    critical_facility_benefit: int
+    objective_score: float = Field(allow_inf_nan=False)
+    objective_units: int
+
+
+class CandidateAssessment(OptimizationBenefit):
+    intervention: Intervention
+    resource_cost: ResourceInventory
+    time_to_effect_minutes: int = Field(ge=0)
+    projected_outcome: OptimizationOutcome
+    completes_successfully: bool
+
+
+class CandidateAssessments(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    optimization_input: OptimizationInput
+    baseline_outcome: OptimizationOutcome
+    candidates: list[CandidateAssessment]
+
+
+class RejectedCandidate(BaseModel):
+    candidate_id: str
+    reason: str
+
+
+class OptimizationPlan(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    assessment: CandidateAssessments
+    method_requested: Literal["auto", "heuristic", "ortools"]
+    method_used: Literal["heuristic", "ortools"]
+    solver_status: str
+    fallback_reason: str | None = None
+    selected_candidates: list[CandidateAssessment]
+    rejected_candidates: list[RejectedCandidate]
+    resource_utilization: ResourceInventory
+    remaining_resources: ResourceInventory
+    additive_objective_units: int
+    selection_adjusted_after_replay: bool
+    projected_outcome: OptimizationOutcome
+    plan_benefit: OptimizationBenefit
+    assumptions: list[str]
+
+
+class CandidateSelection(BaseModel):
+    selected_ids: list[str]
+    method_used: Literal["heuristic", "ortools"]
+    solver_status: str
+    fallback_reason: str | None = None
