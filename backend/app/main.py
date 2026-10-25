@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.infrastructure import router as infrastructure_router
+from app.api.optimization import router as optimization_router
 from app.api.risk import router as risk_router
 from app.api.scenarios import router as scenarios_router
 from app.core.config import settings
@@ -42,3 +43,5 @@ app.include_router(health_router, prefix="/api")
 app.include_router(infrastructure_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
 app.include_router(risk_router, prefix="/api")
+
+app.include_router(optimization_router, prefix="/api")

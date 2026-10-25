@@ -93,6 +93,11 @@ The contract check uses `.venv/bin/python` by default; set
 `BLACKOUT_TEST_PYTHON` to use another Python environment with backend
 dependencies installed.
 
+Resource optimization input and state-driven candidate generation are available
+through `POST /api/scenarios/{scenario_id}/optimization/input`. See the
+[optimization input contract](docs/optimization-input.md) for options and eligibility
+rules. This prepares candidate alternatives for the next allocation phase.
+
 ## Contribution conventions
 
 Use small branches named `codex/<short-description>` or

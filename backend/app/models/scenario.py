@@ -61,7 +61,7 @@ class ScenarioEvent(BaseModel):
     sequence: int = Field(ge=0)
     time: datetime = Field(strict=False)
     node_id: str
-    status: NodeStatus
+    status: NodeStatus = Field(strict=False)
 
     @model_validator(mode="after")
     def validate_time(self) -> "ScenarioEvent":

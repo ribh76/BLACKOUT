@@ -388,10 +388,10 @@ Represent actions that emergency responders can take and apply them to the simul
 4. Define resource costs, target eligibility, execution delay, duration, and failure conditions for each intervention type.-
 5. Implement manual intervention validation so impossible actions are rejected with useful messages.-
 6. Implement intervention application as a simulator event, not as a direct frontend mutation.-
-7. Model effects such as restoring power, increasing backup duration, reducing dependency pressure, reopening a route, or moving exposed population.
-8. Expose candidate interventions for a selected node and return estimated immediate effects.
-9. Add API endpoints for validating and applying an intervention to a cloned scenario state.
-10. Add tests for resource consumption, invalid targets, duplicate actions, timing, restoration, and interaction with the cascade engine.
+7. Model effects such as restoring power, increasing backup duration, reducing dependency pressure, reopening a route, or moving exposed population.-
+8. Expose candidate interventions for a selected node and return estimated immediate effects.-
+9. Add API endpoints for validating and applying an intervention to a cloned scenario state.-
+10. Add tests for resource consumption, invalid targets, duplicate actions, timing, restoration, and interaction with the cascade engine.-
 
 ### Exit condition
 
