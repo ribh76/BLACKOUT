@@ -425,3 +425,142 @@ def test_combined_relocation_conflicts_are_removed(relocation_input, method):
     assert plan.selection_adjusted_after_replay
     assert "combined-plan simulation" in plan.rejected_candidates[0].reason
     assert plan.resource_utilization.emergency_vehicles == 2
+
+
+@pytest.mark.parametrize("method", ["heuristic", "ortools"])
+@pytest.mark.parametrize("timing", ["late", "off_tick", "past"])
+def test_selection_rejects_invalid_timing_at_its_boundary(
+    allocation_fixture, method, timing
+):
+    from datetime import timedelta
+
+    from app.services.optimization_planner import select_candidates
+
+    candidate = allocation_fixture.candidates[0]
+    allocation_fixture.candidates = [candidate]
+    minutes = {"late": 90, "off_tick": 5, "past": -30}[timing]
+    candidate.intervention.start_time = (
+        allocation_fixture.optimization_input.current_city_state.simulation_time
+        + timedelta(minutes=minutes)
+    )
+    assert select_candidates(allocation_fixture, method=method).selected_ids == []
+
+
+@pytest.mark.parametrize("method", ["heuristic", "ortools"])
+def test_randomized_allocations_respect_every_resource_including_traffic(
+    city_input, method
+):
+    import random
+
+    from app.models.intervention import InterventionType
+    from app.services.interventions import propose_intervention
+    from app.services.optimization_planner import select_candidates
+
+    state = city_input.current_city_state
+    intersection = next(
+        n for n in state.nodes if n.type is InfrastructureType.INTERSECTION
+    )
+    intersection.status = NodeStatus.FAILED
+    city_input.candidate_interventions.append(
+        propose_intervention(
+            state,
+            "traffic-fixture",
+            InterventionType.RESTORE_INTERSECTION,
+            intersection.id,
+            state.simulation_time,
+        )
+    )
+    assessment = assess_candidates(city_input)
+    # Test selection constraints independently of benefit estimation.
+    for index, candidate in enumerate(assessment.candidates):
+        candidate.objective_units = index + 1
+        candidate.completes_successfully = True
+    inventory = city_input.resource_inventory.model_dump()
+    rng = random.Random(42)
+    for _ in range(20):
+        restricted = assessment.model_copy(deep=True)
+        budget = {
+            resource: rng.randint(0, available)
+            for resource, available in inventory.items()
+        }
+        for resource, available in budget.items():
+            setattr(
+                restricted.optimization_input.resource_inventory, resource, available
+            )
+        result = select_candidates(restricted, method=method)
+        chosen = [
+            c for c in restricted.candidates if c.intervention.id in result.selected_ids
+        ]
+        assert len({c.intervention.target_node_id for c in chosen}) == len(chosen)
+        for resource, available in budget.items():
+            assert sum(getattr(c.resource_cost, resource) for c in chosen) <= available
+    assessment.candidates = [
+        c for c in assessment.candidates if c.intervention.id == "traffic-fixture"
+    ]
+    assert select_candidates(assessment, method=method).selected_ids == [
+        "traffic-fixture"
+    ]
+    assessment.optimization_input.resource_inventory.traffic_crews = 0
+    assert select_candidates(assessment, method=method).selected_ids == []
+
+
+def test_response_ranks_follow_start_time_and_keep_priority_rank(city_input):
+    from datetime import timedelta
+
+    from app.services.interventions import propose_intervention
+
+    state = city_input.current_city_state
+    repair = next(
+        a
+        for a in city_input.candidate_interventions
+        if a.target_node_id == "substation-03"
+    )
+    generator = next(
+        a
+        for a in city_input.candidate_interventions
+        if a.target_node_id == "pharmacy-downtown"
+        and a.type.value == "DEPLOY_GENERATOR"
+    )
+    delayed = propose_intervention(
+        state,
+        repair.id,
+        repair.type,
+        repair.target_node_id,
+        state.simulation_time + timedelta(minutes=30),
+    )
+    city_input.candidate_interventions = [delayed, generator]
+    plan = plan_response(city_input, method="heuristic")
+    assert len(plan.selected_candidates) == 2
+    assert [c.rank for c in plan.selected_candidates] == [1, 2]
+    assert plan.selected_candidates[0].intervention.id == generator.id
+    assert sorted(c.priority_rank for c in plan.selected_candidates) == [1, 2]
+
+
+def test_weighted_objective_matches_hand_calculated_remaining_loss(relocation_input):
+    from app.models.optimization import OptimizationOutcome
+    from app.services.optimization_scoring import estimate_benefit
+
+    # Two nodes, 1000 neighborhood residents and one critical facility.
+    relocation_input.objective_weights = ObjectiveWeights(
+        risk_reduction=0.5,
+        population_protection=0.3,
+        critical_facility_protection=0.2,
+    )
+    baseline = OptimizationOutcome(
+        system_risk=100.0, affected_population=500, critical_facilities_at_risk=1
+    )
+    restored = OptimizationOutcome(
+        system_risk=0.0, affected_population=0, critical_facilities_at_risk=0
+    )
+    benefit = estimate_benefit(relocation_input, baseline, restored)
+    # Remaining loss drops from .5*(100/200) + .3*(500/1000) + .2*(1/1) to 0.
+    assert benefit.objective_score == pytest.approx(0.6)
+    assert benefit.objective_units == 600000
+    relocation_input.objective_weights = ObjectiveWeights(
+        risk_reduction=0.0,
+        population_protection=1.0,
+        critical_facility_protection=0.0,
+    )
+    assert estimate_benefit(
+        relocation_input, baseline, restored
+    ).objective_score == pytest.approx(0.5)

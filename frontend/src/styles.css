@@ -167,3 +167,34 @@ h2 { font-size: 1.15rem; letter-spacing: -.025em; margin-bottom: .4rem; }
 .cascade-events li strong { color: #f3c29e; line-height: 1.4; }
 .cascade-events li small { color: #b0c5bf; }
 .cascade-explanation { color: #dce9e1; font-size: .74rem; line-height: 1.55; border-left: 2px solid #f3a277; padding-left: .7rem; }
+.response-plan-panel { margin: 1rem 0; padding: 1.3rem; border: 1px solid #426d66; background: linear-gradient(120deg, #102b2b, #102024); }
+.plan-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.plan-heading h2 { margin: 0 0 .4rem; }
+.plan-heading .eyebrow { margin-bottom: .4rem; }
+.plan-heading p, .plan-context { color: #a7bbb6; font-size: .78rem; line-height: 1.5; margin-bottom: .5rem; }
+.plan-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.1rem 0; }
+.plan-summary > div { display: flex; flex-direction: column; padding: .8rem; border-left: 2px solid #42c6b2; background: #122f30; }
+.plan-summary strong { font: 600 1.8rem "Space Grotesk", sans-serif; }
+.plan-summary span { color: #aec8bf; font-size: .76rem; }
+.plan-actions { margin: 1.2rem 0; padding-left: 1.7rem; }
+.plan-actions li { padding: .8rem .5rem; border-top: 1px solid #31524f; }
+.plan-actions li::marker { color: #f3a277; font-weight: bold; }
+.plan-actions p, .plan-actions small { color: #a7bbb6; font-size: .76rem; margin: .4rem 0; line-height: 1.5; }
+.plan-target { border: 0; padding: 0; background: none; color: #eef7ef; text-align: left; font-weight: 600; cursor: pointer; }
+.plan-target:hover, .plan-target:focus-visible { color: #f3a277; text-decoration: underline; }
+.plan-resources { overflow-x: auto; }
+.plan-resources table { border-collapse: collapse; width: 100%; text-align: left; font-size: .78rem; }
+.plan-resources caption { text-align: left; font-weight: bold; color: #e0ece5; padding: .7rem 0; }
+.plan-resources th, .plan-resources td { padding: .55rem; border-bottom: 1px solid #31524f; }
+.plan-resources th { color: #c7d9d1; }
+.plan-resources td { color: #9fc9bf; }
+.plan-details { margin: 1rem 0; color: #a7bbb6; font-size: .78rem; line-height: 1.5; }
+.plan-details summary { color: #e0ece5; cursor: pointer; }
+.plan-details li { padding: .35rem 0; }
+.plan-details p { margin: .2rem 0; }
+.plan-notice, .plan-empty { color: #f3c29e; font-size: .8rem; line-height: 1.5; }
+.plan-error { color: #ffd3d5; }
+.plan-context a { color: #8cdfcf; }
+@media (max-width: 680px) { .plan-heading { flex-direction: column; align-items: stretch; } .plan-summary { gap: .4rem; } .plan-summary strong { font-size: 1.4rem; } .plan-summary span { font-size: .68rem; } }
+.plan-heading .simulate-button { min-height: 42px; cursor: pointer; font: 700 .65rem "Space Grotesk", sans-serif; letter-spacing: .08em; white-space: nowrap; }
+.plan-heading .simulate-button:disabled { opacity: .45; cursor: not-allowed; }

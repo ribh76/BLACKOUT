@@ -412,15 +412,15 @@ Answer the operational question:
 
 1. Define the optimization input: current city state, candidate interventions, resource inventory, planning horizon, and objective weights.-
 2. Generate candidate interventions from currently failed, critical, or high-risk nodes rather than enumerating nonsensical actions.-
-3. Calculate each candidate’s resource cost, expected risk reduction, population benefit, critical-facility benefit, and time to effect.
-4. Implement a simple deterministic heuristic baseline so the system remains usable if OR-Tools integration is delayed.
-5. Integrate Google OR-Tools with variables representing whether each candidate intervention is selected.
-6. Add constraints for generators, fuel, repair crews, traffic crews, vehicles, target exclusivity, and timing.
-7. Optimize a documented objective such as minimizing remaining weighted system risk while protecting critical facilities and population.
-8. Return a ranked response plan with selected actions, rejected alternatives, resource utilization, expected risk reduction, and assumptions.
-9. Add `GENERATE RESPONSE PLAN` to the dashboard and display the recommended actions in operational order.
-10. Add tests comparing the optimizer against small hand-calculated fixtures and verifying that it never violates inventory constraints.
-11. Record the optimizer inputs and outputs so the plan can be explained and reproduced later.
+3. Calculate each candidate’s resource cost, expected risk reduction, population benefit, critical-facility benefit, and time to effect.-
+4. Implement a simple deterministic heuristic baseline so the system remains usable if OR-Tools integration is delayed.-
+5. Integrate Google OR-Tools with variables representing whether each candidate intervention is selected.-
+6. Add constraints for generators, fuel, repair crews, traffic crews, vehicles, target exclusivity, and timing.-
+7. Optimize a documented objective such as minimizing remaining weighted system risk while protecting critical facilities and population.-
+8. Return a ranked response plan with selected actions, rejected alternatives, resource utilization, expected risk reduction, and assumptions.-
+9. Add `GENERATE RESPONSE PLAN` to the dashboard and display the recommended actions in operational order.-
+10. Add tests comparing the optimizer against small hand-calculated fixtures and verifying that it never violates inventory constraints.-
+11. Record the optimizer inputs and outputs so the plan can be explained and reproduced later.-
 
 ### Exit condition
 

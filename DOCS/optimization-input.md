@@ -126,7 +126,7 @@ again. A combined plan with nonpositive weighted benefit is replaced by the
 no-action plan. `selection_adjusted_after_replay` makes this adjustment explicit;
 removed candidates are not replaced or reoptimized in this baseline version.
 
-The response includes selected candidates in score order, rejected candidates
+The response includes selected candidates in operational order, rejected candidates
 with reasons, used and remaining resources, the entire scored input, and both
 the additive estimate and actual combined-plan benefit. Benefits of individual
 actions can overlap, so do not sum them to report the combined benefit.
@@ -134,3 +134,85 @@ actions can overlap, so do not sum them to report the combined benefit.
 not to the nonlinear city response. Synthetic outcomes remain conditional on
 the snapshot and simulator assumptions. The endpoint never applies the plan or
 changes stored city state.
+
+## Constraints and operational order
+
+Every inventory field is enforced by both planners: mobile generators,
+`fuel_gallons`, electrical repair crews, traffic crews, emergency vehicles, and
+response personnel. Costs come from the server catalog, never from dashboard
+inputs. For each resource `r`, `sum(cost[action, r] * selected[action]) <= inventory[r]`.
+One action per target is allowed across the whole planning horizon. Resources
+are reserved for the plan rather than reassigned between tasks.
+
+Start times must be at or after the planning snapshot, aligned with 30-minute
+simulation ticks, and leave enough time for both execution delay and duration
+before the horizon ends. These conditions are checked at input validation,
+catalog validation, and the selection boundary. No selected action is allowed to
+borrow future stock or complete outside the planning window.
+
+The documented objective is equivalent to minimizing estimated remaining loss:
+
+```text
+L = w_risk * sum(node_risk) / max(1, 100 * node_count)
+  + w_population * affected_residents / max(1, initial_neighborhood_population)
+  + w_facilities * critical_or_failed_facilities / max(1, critical_facility_count)
+```
+
+Weights are normalized to sum to one. Because baseline loss is fixed, maximizing
+weighted loss reduction is equivalent to minimizing remaining weighted loss.
+CP-SAT uses additive single-action reductions as its linear estimate; combined
+simulation supplies the final reported benefit and does not double count
+residents or facilities. Solver optimality applies to this linear estimate.
+
+`selected_candidates` now includes consecutive `rank` values in operational
+order: earliest scheduled start first, then weighted benefit, time to effect,
+and candidate ID. `priority_rank` retains the order by estimated benefit. Actions
+with the same start time are simultaneous assignments rather than a sequential
+queue; their resources have already been reserved together.
+
+## Dashboard
+
+Use **GENERATE RESPONSE PLAN** on the City view while playback is paused or
+complete, or from the initially loaded city state. During playback the dashboard
+keeps complete backend snapshots for each simulation time and submits the full
+snapshot for the displayed time, including graph, inventory, and node attributes.
+It does not rebuild a city state from map markers or query a stale stored state.
+The planning time and horizon appear above the recommendations.
+
+The panel displays operational ranks, target assets, starts and effect times,
+resource assignments, used/available/remaining inventory, combined risk reduction,
+residents and facilities protected, rejected alternatives, and assumptions.
+Selecting an action focuses its asset. Errors support retry. Reset or a change
+of planning snapshot aborts pending requests and clears outdated recommendations.
+Generating a response plan estimates actions; it does not execute them.
+
+## Saved runs and replay
+
+Every successful HTTP plan request is recorded atomically before its result is
+returned. A response includes `run_id` and `recorded_at`. Records survive backend
+restarts in `backend/data/optimization_runs.sqlite3`, which is excluded from Git.
+Set `BLACKOUT_OPTIMIZATION_DB` to an alternate writable SQLite path for deployment
+or tests. Tests use isolated temporary databases.
+
+Each record contains the full optimization input (including candidates, city
+state, graph, inventory, horizon and weights), requested and actual method,
+selected and rejected actions, outcomes, costs, assumptions, input/output SHA-256
+checksums, a startup fingerprint of backend Python sources, and Python, OR-Tools,
+Pydantic and NetworkX versions. The input checksum also includes the requested
+method. The record's schema version is independent of city schema versions.
+
+- `GET /api/scenarios/{scenario_id}/optimization/runs?limit=20`: recent run summaries.
+- `GET /api/scenarios/{scenario_id}/optimization/runs/{run_id}`: complete saved inputs
+  and results; available from the dashboard's **View saved inputs and results** link.
+- `POST /api/scenarios/{scenario_id}/optimization/runs/{run_id}/replay`: run the exact
+  saved candidate input again without regenerating the pool or changing city state.
+
+A replay is saved as a new record with `replay_of` pointing to the original. Its
+response reports `matches_original` (ignoring audit ID and timestamp), plus
+`engine_matches_original` and `runtime_matches_original`. Matching engine and
+runtime versions support reproducibility; changed catalog definitions may reject
+an old candidate instead of silently substituting a new action. These records
+preserve evidence and detect accidental input/output modification; they are not
+cryptographic signatures or a replacement for filesystem access controls.
+A storage failure returns 503 rather than presenting an unrecorded successful
+plan. Existing records can be read without relying on the current stored city.

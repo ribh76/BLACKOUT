@@ -1,4 +1,6 @@
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +14,7 @@ from app.core.config import settings
 from app.services.city_data import load_city
 from app.services.dependency_data import load_dependencies
 from app.services.dependency_graph import build_dependency_graph
+from app.services.optimization_history import DEFAULT_HISTORY_PATH, OptimizationRunStore
 from app.services.scenarios import ScenarioStore, load_scenario
 
 
@@ -25,6 +28,9 @@ async def lifespan(application: FastAPI):
     )
     application.state.scenario_store = ScenarioStore(
         load_scenario(city), city, dependencies.edges
+    )
+    application.state.optimization_runs = OptimizationRunStore(
+        Path(os.getenv("BLACKOUT_OPTIMIZATION_DB", str(DEFAULT_HISTORY_PATH)))
     )
     yield
 

@@ -99,6 +99,10 @@ through `POST /api/scenarios/{scenario_id}/optimization/input`. See the
 rules. `POST /api/scenarios/{scenario_id}/optimization/candidates` returns
 simulated benefit estimates; `POST /api/scenarios/{scenario_id}/optimization/plan`
 selects actions using OR-Tools CP-SAT or the deterministic heuristic fallback.
+Use **GENERATE RESPONSE PLAN** while playback is paused or complete to see ranked
+recommendations, resource assignments, and estimated benefits for the displayed
+state. Each plan links to saved inputs and results, with durable history and a
+replay API documented in the contract.
 
 ## Contribution conventions
 

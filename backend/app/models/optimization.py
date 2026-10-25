@@ -1,6 +1,6 @@
 """Reproducible inputs for resource allocation; no selection is implied."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -149,6 +149,11 @@ class RejectedCandidate(BaseModel):
     reason: str
 
 
+class RankedAction(CandidateAssessment):
+    rank: int = Field(ge=1)
+    priority_rank: int = Field(ge=1)
+
+
 class OptimizationPlan(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -157,7 +162,9 @@ class OptimizationPlan(BaseModel):
     method_used: Literal["heuristic", "ortools"]
     solver_status: str
     fallback_reason: str | None = None
-    selected_candidates: list[CandidateAssessment]
+    run_id: str | None = None
+    recorded_at: datetime | None = Field(default=None, strict=False)
+    selected_candidates: list[RankedAction]
     rejected_candidates: list[RejectedCandidate]
     resource_utilization: ResourceInventory
     remaining_resources: ResourceInventory
@@ -173,3 +180,30 @@ class CandidateSelection(BaseModel):
     method_used: Literal["heuristic", "ortools"]
     solver_status: str
     fallback_reason: str | None = None
+
+
+class OptimizationRunRecord(BaseModel):
+    schema_version: Literal[1] = 1
+    run_id: str
+    recorded_at: datetime = Field(strict=False)
+    replay_of: str | None = None
+    engine_fingerprint: str
+    runtime_versions: dict[str, str]
+    input_sha256: str
+    output_sha256: str
+    plan: OptimizationPlan
+
+
+class OptimizationRunSummary(BaseModel):
+    run_id: str
+    recorded_at: datetime = Field(strict=False)
+    method_used: str
+    selected_action_count: int
+
+
+class OptimizationReplay(BaseModel):
+    original_run_id: str
+    matches_original: bool
+    engine_matches_original: bool
+    runtime_matches_original: bool
+    plan: OptimizationPlan

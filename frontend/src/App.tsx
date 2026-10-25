@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import { ResponsePlanPanel } from "./ResponsePlanPanel";
+import { isPlanningState } from "./optimization";
+import type { PlanningCityState } from "./optimization";
 import { CascadeExplorer } from "./CascadeExplorer";
 import type { CascadeResponse } from "./cascade";
 import {
@@ -207,6 +210,12 @@ function CityMap({
 }
 export function App() {
   const [snapshot, setSnapshot] = useState<InfrastructureSnapshot | null>(null);
+  const [planningState, setPlanningState] = useState<PlanningCityState | null>(
+    null,
+  );
+  const [planningStates, setPlanningStates] = useState<
+    Record<string, PlanningCityState>
+  >({});
   const [nodes, setNodes] = useState<InfrastructureNode[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cascade, setCascade] = useState<CascadeResponse | null>(null);
@@ -280,6 +289,7 @@ export function App() {
           throw new Error("Invalid infrastructure response");
         setSnapshot(data);
         setNodes(state.nodes);
+        setPlanningState(isPlanningState(state) ? state : null);
         setFeed(
           (state.event_history ?? []).map((event): SimulationEvent => {
             const name =
@@ -354,6 +364,8 @@ export function App() {
     requestRef.current = { kind: "simulate", controller };
     setSimulationError(null);
     setPhase("loading");
+    setPlanningState(null);
+    setPlanningStates({});
     setNodes(snapshot.nodes);
     setElapsedMinutes(0);
     setFeed([]);
@@ -386,6 +398,21 @@ export function App() {
       const playback = buildPlaybackSteps(result);
       if (!result.risk_rankings?.["0"]?.nodes)
         throw new Error("Simulation response is missing risk rankings");
+      setPlanningStates(
+        Object.fromEntries(
+          result.states
+            .filter((state) => isPlanningState(state.city_state))
+            .map((state) => [
+              String(state.elapsed_minutes),
+              state.city_state as PlanningCityState,
+            ]),
+        ),
+      );
+      setPlanningState(
+        isPlanningState(result.states[0].city_state)
+          ? result.states[0].city_state
+          : null,
+      );
       setRiskRankings(result.risk_rankings);
       setRiskRanking(result.risk_rankings["0"]);
       setRiskError(null);
@@ -418,6 +445,8 @@ export function App() {
     const controller = new AbortController();
     requestRef.current = { kind: "reset", controller };
     setPhase("resetting");
+    setPlanningState(null);
+    setPlanningStates({});
     setSimulationError(null);
     setNodes(snapshot.nodes);
     setElapsedMinutes(0);
@@ -440,6 +469,7 @@ export function App() {
         throw new Error("Invalid reset response");
       if (generation !== generationRef.current) return;
       setNodes(result.nodes);
+      setPlanningState(isPlanningState(result) ? result : null);
       setRiskRefreshKey((key) => key + 1);
       setPhase("idle");
     } catch (cause: unknown) {
@@ -472,6 +502,7 @@ export function App() {
       setNodes((current) => applyPlaybackStep(current, step));
       if (step.kind === "tick")
         setRiskRanking(riskRankings?.[String(step.elapsed_minutes)] ?? null);
+      setPlanningState(planningStates[String(step.elapsed_minutes)] ?? null);
       setElapsedMinutes(step.elapsed_minutes);
       setStepIndex((current) => current + 1);
     }, STEP_DELAY_MS);
@@ -480,7 +511,7 @@ export function App() {
       window.clearTimeout(timer);
       if (timerRef.current === timer) timerRef.current = null;
     };
-  }, [phase, stepIndex, steps, riskRankings]);
+  }, [phase, stepIndex, steps, riskRankings, planningStates]);
 
   useEffect(() => {
     if (phase === "running" && feedListRef.current) {
@@ -669,6 +700,15 @@ export function App() {
           <small>highest backend simulated asset score</small>
         </div>
       </section>
+      <ResponsePlanPanel
+        cityState={planningState}
+        elapsedMinutes={elapsedMinutes}
+        disabled={
+          phase === "running" || phase === "loading" || phase === "resetting"
+        }
+        apiUrl={apiUrl}
+        onSelect={selectNode}
+      />
       <section className="risk-panel" aria-label="Critical Infrastructure">
         <div className="risk-heading">
           <div>

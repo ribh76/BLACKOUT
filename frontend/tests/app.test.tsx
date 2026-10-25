@@ -684,3 +684,78 @@ test("shows an infrastructure load error and recovers on retry", async () => {
     await app.cleanup();
   }
 });
+
+test("dashboard plans from the paused playback snapshot and drops a late plan after reset", async () => {
+  const pending = deferred();
+  const fullState = {
+    ...snapshot,
+    scenario_id: "extreme-heat-grid-failure",
+    simulation_time: "2026-07-15T14:00:00-07:00",
+    duration_minutes: 120,
+    dependency_edges: [
+      { provider_id: "hub", dependent_id: "east", weight: 0.9 },
+    ],
+    resource_inventory: {
+      mobile_generators: 1,
+      fuel_gallons: 100,
+      electrical_crews: 1,
+      traffic_crews: 1,
+      emergency_vehicles: 2,
+      response_personnel: 4,
+    },
+  };
+  const simulated = {
+    ...result,
+    states: result.states.map((state) => ({
+      ...state,
+      city_state: { ...fullState, nodes: state.city_state.nodes },
+    })),
+  };
+  let planned: unknown = null;
+  const app = await mount(async (input, options) => {
+    const url = String(input);
+    if (url.endsWith("/optimization/plan")) {
+      planned = JSON.parse(String(options?.body));
+      return pending.promise as Promise<Response>;
+    }
+    return response(
+      url.endsWith("/simulate")
+        ? simulated
+        : url.endsWith("/risk")
+          ? riskRanking
+          : fullState,
+    ) as Response;
+  });
+  try {
+    await click(button(app.container, "SIMULATE BLACKOUT"));
+    assert.equal(
+      (button(app.container, "GENERATE RESPONSE PLAN") as HTMLButtonElement)
+        .disabled,
+      true,
+    );
+    await click(button(app.container, "Pause"));
+    await click(button(app.container, "GENERATE RESPONSE PLAN"));
+    assert.deepEqual(
+      (planned as { current_city_state: unknown }).current_city_state,
+      simulated.states[0].city_state,
+    );
+    await click(button(app.container, "Reset"));
+    await act(async () =>
+      pending.resolve(
+        response({
+          run_id: "late",
+          selected_candidates: [],
+          assessment: { optimization_input: { current_city_state: fullState } },
+        }),
+      ),
+    );
+    assert.equal(app.container.querySelector(".response-plan-panel a"), null);
+    assert.equal(
+      (button(app.container, "GENERATE RESPONSE PLAN") as HTMLButtonElement)
+        .disabled,
+      false,
+    );
+  } finally {
+    await app.cleanup();
+  }
+});

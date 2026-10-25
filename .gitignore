@@ -10,3 +10,5 @@ node_modules/
 frontend/coverage/
 frontend/*.tsbuildinfo
 backend/coverage.xml
+
+backend/data/optimization_runs.sqlite3*

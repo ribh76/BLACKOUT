@@ -8,6 +8,7 @@ from app.models.optimization import (
     CandidateSelection,
     OptimizationInput,
     OptimizationPlan,
+    RankedAction,
     RejectedCandidate,
 )
 from app.models.scenario import ResourceInventory
@@ -29,8 +30,19 @@ def _priority(candidate: CandidateAssessment) -> tuple[int, int, str]:
     )
 
 
-def _eligible(candidate: CandidateAssessment) -> bool:
-    return candidate.completes_successfully and candidate.objective_units > 0
+def _eligible(candidate: CandidateAssessment, inputs: OptimizationInput) -> bool:
+    action = candidate.intervention
+    offset = (
+        action.start_time - inputs.current_city_state.simulation_time
+    ).total_seconds() / 60
+    completion = offset + action.execution_delay_minutes + action.duration_minutes
+    return (
+        candidate.completes_successfully
+        and candidate.objective_units > 0
+        and offset >= 0
+        and offset % 30 == 0
+        and completion <= inputs.planning_horizon_minutes
+    )
 
 
 def _heuristic(assessment: CandidateAssessments) -> list[str]:
@@ -40,7 +52,10 @@ def _heuristic(assessment: CandidateAssessments) -> list[str]:
     for candidate in sorted(assessment.candidates, key=_priority):
         action = candidate.intervention
         costs = action.resource_costs.model_dump()
-        if not _eligible(candidate) or action.target_node_id in targets:
+        if (
+            not _eligible(candidate, assessment.optimization_input)
+            or action.target_node_id in targets
+        ):
             continue
         if any(cost > remaining[resource] for resource, cost in costs.items()):
             continue
@@ -99,7 +114,7 @@ def select_candidates(
     targets = {}
     for candidate, variable in zip(candidates, variables):
         targets.setdefault(candidate.intervention.target_node_id, []).append(variable)
-        if not _eligible(candidate):
+        if not _eligible(candidate, assessment.optimization_input):
             model.add(variable == 0)
     for group in targets.values():
         model.add(sum(group) <= 1)
@@ -167,7 +182,10 @@ def plan_response(
     removed = {}
     # Combined actions can invalidate each other's completion prerequisites.
     while True:
-        selected = [c for c in candidates if c.intervention.id in selected_ids]
+        selected = sorted(
+            (c for c in candidates if c.intervention.id in selected_ids),
+            key=lambda c: (c.intervention.start_time, _priority(c)),
+        )
         plan = [c.intervention for c in selected]
         validate_intervention_plan(state, plan)
         simulation = run_simulation(state, plan)
@@ -217,13 +235,28 @@ def plan_response(
         else:
             reason = "Not selected by the allocation objective."
         rejected.append(RejectedCandidate(candidate_id=candidate_id, reason=reason))
+    priority_ranks = {
+        candidate.intervention.id: index + 1
+        for index, candidate in enumerate(sorted(selected, key=_priority))
+    }
+    operational = sorted(
+        selected, key=lambda c: (c.intervention.start_time, _priority(c))
+    )
+    ranked = [
+        RankedAction(
+            **candidate.model_dump(),
+            rank=index + 1,
+            priority_rank=priority_ranks[candidate.intervention.id],
+        )
+        for index, candidate in enumerate(operational)
+    ]
     return OptimizationPlan(
         assessment=assessment,
         method_requested=method,
         method_used=selection.method_used,
         solver_status=selection.solver_status,
         fallback_reason=selection.fallback_reason,
-        selected_candidates=selected,
+        selected_candidates=ranked,
         rejected_candidates=rejected,
         resource_utilization=ResourceInventory(**used),
         remaining_resources=ResourceInventory(
