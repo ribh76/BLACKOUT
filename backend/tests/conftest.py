@@ -8,3 +8,6 @@ def isolate_optimization_history(tmp_path, monkeypatch):
     monkeypatch.setenv(
         "BLACKOUT_OPTIMIZATION_DB", str(tmp_path / "optimization.sqlite3")
     )
+    monkeypatch.setenv(
+        "BLACKOUT_COUNTERFACTUAL_DB", str(tmp_path / "counterfactual.sqlite3")
+    )

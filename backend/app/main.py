@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.counterfactual import router as counterfactual_router
 from app.api.health import router as health_router
 from app.api.infrastructure import router as infrastructure_router
 from app.api.optimization import router as optimization_router
@@ -12,6 +13,7 @@ from app.api.risk import router as risk_router
 from app.api.scenarios import router as scenarios_router
 from app.core.config import settings
 from app.services.city_data import load_city
+from app.services.counterfactual import DEFAULT_BASELINE_PATH, BaselineRunStore
 from app.services.dependency_data import load_dependencies
 from app.services.dependency_graph import build_dependency_graph
 from app.services.optimization_history import DEFAULT_HISTORY_PATH, OptimizationRunStore
@@ -32,6 +34,9 @@ async def lifespan(application: FastAPI):
     application.state.optimization_runs = OptimizationRunStore(
         Path(os.getenv("BLACKOUT_OPTIMIZATION_DB", str(DEFAULT_HISTORY_PATH)))
     )
+    application.state.baseline_runs = BaselineRunStore(
+        Path(os.getenv("BLACKOUT_COUNTERFACTUAL_DB", str(DEFAULT_BASELINE_PATH)))
+    )
     yield
 
 
@@ -51,3 +56,4 @@ app.include_router(scenarios_router, prefix="/api")
 app.include_router(risk_router, prefix="/api")
 
 app.include_router(optimization_router, prefix="/api")
+app.include_router(counterfactual_router, prefix="/api")

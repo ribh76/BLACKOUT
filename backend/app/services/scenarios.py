@@ -134,6 +134,12 @@ class ScenarioStore:
         with self._lock:
             return get_scenario_state(self._state)
 
+    def pristine_scenario_state(self) -> CityState:
+        """Return the untouched scenario before any initial event is applied."""
+
+        with self._lock:
+            return get_scenario_state(self._pristine_state)
+
     def reset_scenario(self) -> CityState:
         with self._lock:
             self._state = get_scenario_state(self._pristine_state)
