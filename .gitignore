@@ -12,3 +12,4 @@ frontend/*.tsbuildinfo
 backend/coverage.xml
 
 backend/data/optimization_runs.sqlite3*
+backend/data/counterfactual_runs.sqlite3*

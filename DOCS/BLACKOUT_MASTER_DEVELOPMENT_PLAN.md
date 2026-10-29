@@ -445,11 +445,11 @@ Prove that the recommended response changes the outcome instead of merely soundi
 
 ### Actions
 
-1. Snapshot the pristine scenario before any initial event or intervention is applied.
-2. Run a baseline simulation with `NO INTERVENTION` and store its complete timeline, final state, and metrics.
-3. Reset to the exact same initial state and verify snapshot equivalence before starting the response run.
-4. Generate or load the recommended intervention plan and validate it against the available resources.
-5. Apply the intervention plan to the cloned state through the simulator.
+1. Snapshot the pristine scenario before any initial event or intervention is applied.-
+2. Run a baseline simulation with `NO INTERVENTION` and store its complete timeline, final state, and metrics.-
+3. Reset to the exact same initial state and verify snapshot equivalence before starting the response run.-
+4. Generate or load the recommended intervention plan and validate it against the available resources.-
+5. Apply the intervention plan to the cloned state through the simulator.-
 6. Run the response simulation with the same scenario parameters and simulation horizon.
 7. Store both results under a shared comparison ID with explicit scenario and engine versions.
 8. Compare critical failures, people affected, hospital downtime, system risk, recovery time, and resource utilization.

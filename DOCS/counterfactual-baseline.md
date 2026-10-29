@@ -14,6 +14,20 @@ integrity checks. Retrieve an existing record with
 `GET /api/scenarios/{scenario_id}/counterfactual/baseline/{run_id}`.
 
 Records use `backend/data/counterfactual_runs.sqlite3` by default. Set
-`BLACKOUT_COUNTERFACTUAL_DB` to choose another database path. This captures the
-first two steps of Phase 10; response-run replay and before/after comparison
-will use the saved baseline in the next step.
+`BLACKOUT_COUNTERFACTUAL_DB` to choose another database path.
+
+`POST /api/scenarios/{scenario_id}/counterfactual/comparisons` creates a shared
+comparison record. Send `{}` to generate both the baseline and a recommended
+plan, or supply `baseline_run_id` and/or `optimization_run_id` to reuse saved
+records. `method` selects `auto`, `heuristic`, or `ortools` when a plan is
+generated. A loaded plan must target the baseline's exact T+0 state.
+
+Before response simulation, the server rebuilds T+0 from the saved pristine
+state, checks exact snapshot equivalence, and validates every selected action
+against its canonical definition and aggregate inventory. It then simulates a
+deep copy with those actions. The response and baseline use the same scenario
+conditions, fixed horizon, and engine fingerprint. The record stores both
+complete results, the plan, scenario and city schema versions, a scenario content
+fingerprint, source hashes,
+and a shared `comparison_id`. Retrieve it with
+`GET /api/scenarios/{scenario_id}/counterfactual/comparisons/{comparison_id}`.
