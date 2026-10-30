@@ -1,5 +1,6 @@
 """Build and retain a full no-intervention scenario replay."""
 
+import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -7,7 +8,8 @@ from uuid import uuid4
 
 from app.models.counterfactual import BaselineRunRecord, ComparisonRunRecord
 from app.models.optimization import OptimizationPlan
-from app.models.scenario import CityState, Scenario
+from app.models.scenario import CityState, ResourceInventory, Scenario
+from app.services.counterfactual_metrics import compare_results
 from app.services.interventions import validate_intervention_plan
 from app.services.optimization_history import digest, engine_fingerprint
 from app.services.risk import rank_risk
@@ -119,11 +121,24 @@ class BaselineRunStore:
             response_initial,
             [item.intervention for item in plan.selected_candidates],
         )
+        resources_used = ResourceInventory(
+            **{
+                resource: sum(
+                    getattr(action.resource_costs, resource) for action in actions
+                )
+                for resource in response_initial.resource_inventory.model_dump()
+            }
+        )
+        if resources_used != plan.resource_utilization:
+            raise ValueError(
+                "Plan resource utilization does not match selected actions"
+            )
         response = run_simulation(response_initial.model_copy(deep=True), actions)
         response.risk_rankings = {
             state.elapsed_minutes: rank_risk(state.city_state)
             for state in response.states
         }
+        summary = compare_results(baseline.result, response, resources_used)
         input_payload = {
             "baseline_run_id": baseline.run_id,
             "baseline_input_sha256": baseline.input_sha256,
@@ -134,6 +149,7 @@ class BaselineRunStore:
         output_payload = {
             "baseline_result": baseline.result.model_dump(mode="json"),
             "response_result": response.model_dump(mode="json"),
+            "summary": summary.model_dump(mode="json"),
         }
         record = ComparisonRunRecord(
             comparison_id=str(uuid4()),
@@ -152,6 +168,7 @@ class BaselineRunStore:
             response_initial_state=response_initial,
             plan=plan,
             response_result=response,
+            summary=summary,
             input_sha256=digest(input_payload),
             output_sha256=digest(output_payload),
         )
@@ -199,9 +216,10 @@ class BaselineRunStore:
             ).fetchone()
         if row is None:
             return None
+        payload = json.loads(row[0])
         record = ComparisonRunRecord.model_validate_json(row[0])
         if record.record_sha256 != digest(
-            record.model_dump(mode="json", exclude={"record_sha256"})
+            {key: value for key, value in payload.items() if key != "record_sha256"}
         ):
             raise ValueError("Comparison record integrity check failed")
         input_payload = {
@@ -217,6 +235,10 @@ class BaselineRunStore:
             "baseline_result": record.baseline.result.model_dump(mode="json"),
             "response_result": record.response_result.model_dump(mode="json"),
         }
+        if "summary" in payload:
+            if record.summary is None:
+                raise ValueError("Comparison record summary is missing")
+            output_payload["summary"] = record.summary.model_dump(mode="json")
         if (
             record.input_sha256 != digest(input_payload)
             or record.output_sha256 != digest(output_payload)
@@ -226,4 +248,21 @@ class BaselineRunStore:
             or record.scenario_id != scenario_id
         ):
             raise ValueError("Comparison record integrity check failed")
+        if "summary" not in payload:
+            record.summary = compare_results(
+                record.baseline.result,
+                record.response_result,
+                record.plan.resource_utilization,
+            )
+            output_payload["summary"] = record.summary.model_dump(mode="json")
+            record.output_sha256 = digest(output_payload)
+            record.record_sha256 = digest(
+                record.model_dump(mode="json", exclude={"record_sha256"})
+            )
+            with sqlite3.connect(self.path) as connection:
+                connection.execute(
+                    "UPDATE comparison_runs SET payload = ? "
+                    "WHERE scenario_id = ? AND comparison_id = ? AND payload = ?",
+                    (record.model_dump_json(), scenario_id, comparison_id, row[0]),
+                )
         return record

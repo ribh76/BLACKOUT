@@ -57,6 +57,18 @@ def test_generated_comparison_persists_both_full_runs_and_versions():
             == record.plan.remaining_resources
         )
         assert (
+            record.summary.baseline.people_affected
+            == record.baseline.result.final_metrics.affected_population
+        )
+        assert (
+            record.summary.response.people_affected
+            == record.response_result.final_metrics.affected_population
+        )
+        assert (
+            record.summary.improvement.additional_resources_used
+            == record.plan.resource_utilization
+        )
+        assert (
             record.response_result.tick_minutes == record.baseline.result.tick_minutes
         )
         assert record.response_result.states[-1].city_state.simulation_time == (
@@ -198,3 +210,39 @@ def test_comparison_record_detects_tampering(tmp_path, monkeypatch):
                 (json.dumps(payload), comparison_id),
             )
         assert client.get(f"{COMPARISONS}/{comparison_id}").status_code == 503
+
+
+def test_previous_comparison_record_gains_a_saved_summary(tmp_path, monkeypatch):
+    path = tmp_path / "comparison.sqlite3"
+    monkeypatch.setenv("BLACKOUT_COUNTERFACTUAL_DB", str(path))
+    with TestClient(app) as client:
+        original = client.post(COMPARISONS, json={"method": "heuristic"}).json()
+        comparison_id = original["comparison_id"]
+        with sqlite3.connect(path) as connection:
+            old = original.copy()
+            old.pop("summary")
+            old["output_sha256"] = digest(
+                {
+                    "baseline_result": old["baseline"]["result"],
+                    "response_result": old["response_result"],
+                }
+            )
+            old["record_sha256"] = digest(
+                {key: value for key, value in old.items() if key != "record_sha256"}
+            )
+            connection.execute(
+                "UPDATE comparison_runs SET payload = ? WHERE comparison_id = ?",
+                (json.dumps(old), comparison_id),
+            )
+        upgraded = client.get(f"{COMPARISONS}/{comparison_id}")
+        assert upgraded.status_code == 200, upgraded.text
+        assert upgraded.json()["summary"] == original["summary"]
+        assert client.get(f"{COMPARISONS}/{comparison_id}").json() == upgraded.json()
+        with sqlite3.connect(path) as connection:
+            stored = json.loads(
+                connection.execute(
+                    "SELECT payload FROM comparison_runs WHERE comparison_id = ?",
+                    (comparison_id,),
+                ).fetchone()[0]
+            )
+        assert stored["summary"] == original["summary"]

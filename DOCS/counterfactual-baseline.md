@@ -28,6 +28,17 @@ against its canonical definition and aggregate inventory. It then simulates a
 deep copy with those actions. The response and baseline use the same scenario
 conditions, fixed horizon, and engine fingerprint. The record stores both
 complete results, the plan, scenario and city schema versions, a scenario content
-fingerprint, source hashes,
-and a shared `comparison_id`. Retrieve it with
+fingerprint, source hashes, and a shared `comparison_id`. Retrieve it with
 `GET /api/scenarios/{scenario_id}/counterfactual/comparisons/{comparison_id}`.
+
+The saved `summary` compares six outcomes. Critical failures count FAILED
+critical facilities at the final tick; affected people come from the simulator's
+final neighborhood count. Hospital downtime is the sum of minutes that each
+hospital spends CRITICAL or FAILED over the intervals between ticks. System
+risk is the sum of final 0–100 node risk scores, as used by the optimizer.
+Recovery time is the first tick when every node is OPERATIONAL and remains so
+through the horizon; it is `null` when recovery is not observed. Resource
+utilization lists reserved units for each inventory type, zero for the baseline
+and the sum of selected action costs for the response. The `improvement` fields
+subtract response harm from baseline harm, so a positive number means less harm.
+When either run has no observed recovery, recovery-time improvement is `null`.
